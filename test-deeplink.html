@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Deep Link</title>
+</head>
+<body>
+    <h1>Test Deep Link for Ato App</h1>
+    <p>Click the link below to test the deep link (make sure the app is running in simulator first):</p>
+    <a href="atoapp://auth/callback">Open Ato App</a>
+    
+    <script>
+        // Auto redirect after 2 seconds
+        setTimeout(() => {
+            window.location.href = "atoapp://auth/callback";
+        }, 2000);
+    </script>
+</body>
+</html>
