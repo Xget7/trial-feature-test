@@ -1,4 +1,4 @@
-import type { AtoManager, AtoUser, UserReport } from './ato-api'
+import type { AtoManager, AtoUser, UserReport, Contact } from './ato-api'
 
 /**
  * Mock data for development without backend
@@ -160,6 +160,151 @@ export const MOCK_REPORTS: Record<string, UserReport> = {
       },
     ],
   },
+}
+
+export const MOCK_CONTACTS: Record<string, Contact[]> = {
+  'mock-user-1': [
+    {
+      id: 'contact-1',
+      user_id: 'mock-user-1',
+      name: 'María',
+      surname: 'García López',
+      relationship: 'Hija',
+      other_names: ['Mari'],
+      birthday: '1985-03-15',
+      location: 'Madrid, España',
+      contact_methods: [
+        {
+          method: 'PHONE',
+          value: '+34612345678',
+          is_primary: true,
+          description: 'Teléfono personal',
+        },
+        {
+          method: 'WHATSAPP',
+          value: '+34612345678',
+          is_primary: false,
+          description: 'WhatsApp',
+        },
+      ],
+      created_at: '2024-01-20T10:00:00Z',
+      updated_at: '2024-10-10T08:30:00Z',
+    },
+    {
+      id: 'contact-2',
+      user_id: 'mock-user-1',
+      name: 'Carlos',
+      surname: 'García Fernández',
+      relationship: 'Hijo',
+      other_names: ['Carlitos'],
+      birthday: '1982-07-22',
+      location: 'Barcelona, España',
+      contact_methods: [
+        {
+          method: 'WHATSAPP',
+          value: '+34623456789',
+          is_primary: true,
+          description: 'WhatsApp principal',
+        },
+      ],
+      created_at: '2024-01-22T11:00:00Z',
+      updated_at: '2024-10-09T16:45:00Z',
+    },
+    {
+      id: 'contact-3',
+      user_id: 'mock-user-1',
+      name: 'Dr. Pérez',
+      surname: 'González',
+      relationship: 'Médico de familia',
+      other_names: null,
+      birthday: null,
+      location: 'Centro de Salud Madrid Centro',
+      contact_methods: [
+        {
+          method: 'PHONE',
+          value: '+34915123456',
+          is_primary: true,
+          description: 'Consulta',
+        },
+      ],
+      created_at: '2024-02-10T09:15:00Z',
+      updated_at: '2024-09-28T16:45:00Z',
+    },
+    {
+      id: 'contact-4',
+      user_id: 'mock-user-1',
+      name: 'Ana',
+      surname: 'Martínez',
+      relationship: 'Nieta',
+      other_names: ['Anita'],
+      birthday: '2005-11-10',
+      location: 'Madrid, España',
+      contact_methods: [
+        {
+          method: 'WHATSAPP',
+          value: '+34656789012',
+          is_primary: true,
+          description: 'WhatsApp',
+        },
+        {
+          method: 'SMS',
+          value: '+34656789012',
+          is_primary: false,
+          description: 'SMS',
+        },
+      ],
+      created_at: '2024-03-05T14:20:00Z',
+      updated_at: '2024-10-08T12:30:00Z',
+    },
+  ],
+  'mock-user-2': [
+    {
+      id: 'contact-5',
+      user_id: 'mock-user-2',
+      name: 'Carlos',
+      surname: 'Rodríguez Martín',
+      relationship: 'Hijo',
+      other_names: ['Carlitos'],
+      birthday: '1978-07-22',
+      location: 'Barcelona, España',
+      contact_methods: [
+        {
+          method: 'PHONE',
+          value: '+34623456789',
+          is_primary: true,
+          description: 'Móvil personal',
+        },
+        {
+          method: 'WHATSAPP',
+          value: '+34623456789',
+          is_primary: false,
+          description: 'WhatsApp',
+        },
+      ],
+      created_at: '2024-02-15T14:20:00Z',
+      updated_at: '2024-10-09T16:45:00Z',
+    },
+    {
+      id: 'contact-6',
+      user_id: 'mock-user-2',
+      name: 'Laura',
+      surname: 'Rodríguez Sánchez',
+      relationship: 'Hija',
+      other_names: null,
+      birthday: '1980-05-18',
+      location: 'Valencia, España',
+      contact_methods: [
+        {
+          method: 'WHATSAPP',
+          value: '+34634567890',
+          is_primary: true,
+          description: 'WhatsApp principal',
+        },
+      ],
+      created_at: '2024-02-16T10:00:00Z',
+      updated_at: '2024-10-07T09:20:00Z',
+    },
+  ],
 }
 
 /**

@@ -59,6 +59,27 @@ export interface UserReport {
   }[]
 }
 
+export interface ContactMethod {
+  method: 'WHATSAPP' | 'SMS' | 'EMAIL' | 'PHONE'
+  value: string
+  is_primary: boolean
+  description?: string
+}
+
+export interface Contact {
+  id: string
+  user_id: string
+  name: string
+  surname: string
+  relationship: string
+  other_names: string[] | null
+  birthday: string | null
+  location: string | null
+  contact_methods: ContactMethod[]
+  created_at: string
+  updated_at: string
+}
+
 class AtoApiService {
   private async getToken(): Promise<string | null> {
     try {
@@ -228,6 +249,29 @@ class AtoApiService {
       recent_activity: [],
       upcoming_reminders: [],
     }
+  }
+
+  // Contacts API
+  async getContactsForUser(userId: string): Promise<Contact[]> {
+    if (USE_MOCK_DATA) {
+      console.log('🎭 Mock mode: Getting contacts for user', userId)
+      await new Promise(resolve => setTimeout(resolve, 600))
+
+      const { MOCK_CONTACTS } = await import('./ato-api.mocks')
+      const userContacts = MOCK_CONTACTS[userId] || []
+      return userContacts
+    }
+
+    // Usar Supabase directamente
+    console.log('🔐 Real mode: Getting contacts from Supabase for user', userId)
+    const { data, error } = await supabase.from('contacts').select('*').eq('user_id', userId)
+
+    if (error) {
+      console.error('Supabase error getting contacts:', error)
+      return []
+    }
+
+    return data || []
   }
 }
 
