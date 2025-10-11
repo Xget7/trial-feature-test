@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { atoApi, AtoManager, AtoUser, UserReport, MOCK_IDS } from '../lib/ato-api'
+import { t } from '../lib/i18n'
 
 interface AtoContextType {
   // Manager data
@@ -121,8 +122,8 @@ export const AtoProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }
 
   const getUserStatusMessage = (): string => {
-    if (!selectedUser) return 'No hay usuario seleccionado'
-    if (!userReport) return 'Cargando estado...'
+    if (!selectedUser) return t('userStatus.noUserSelected')
+    if (!userReport) return t('userStatus.loadingStatus')
 
     const hasRecentActivity = userReport.recent_activity.length > 0
     const userName = selectedUser.nickname || selectedUser.name
@@ -134,12 +135,15 @@ export const AtoProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const isToday = activityDate.toDateString() === today.toDateString()
 
       if (isToday) {
-        return `${userName} tiene actividad reciente`
+        return t('userStatus.recentActivity', { userName })
       } else {
-        return `${userName} última actividad: ${activityDate.toLocaleDateString()}`
+        return t('userStatus.lastActivity', {
+          userName,
+          date: activityDate.toLocaleDateString(),
+        })
       }
     } else {
-      return `${userName} sin novedades recientes`
+      return t('userStatus.noRecentActivity', { userName })
     }
   }
 

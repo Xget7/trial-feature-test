@@ -43,7 +43,6 @@ export default function DashboardScreen() {
     )
   }
 
-  // Show dashboard
   console.log('Dashboard ready with manager:', currentManager?.name)
   return (
     <View style={styles.container}>
