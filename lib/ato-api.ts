@@ -1,7 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { MOCK_MANAGERS, MOCK_USERS, MOCK_REPORTS } from './ato-api.mocks'
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || ''
 const TOKEN_KEY = 'ato_api_token'
+const USE_MOCK_DATA = process.env.EXPO_PUBLIC_USE_MOCK_API === 'true' || !API_BASE_URL
 
 export interface AtoManager {
   id: string
@@ -17,6 +19,22 @@ export interface AtoManager {
   updated_at: string
   user_id: string | null
   relationship: string | null
+}
+
+export interface AtoUser {
+  id: string
+  name: string
+  surname: string
+  other_names: string | null
+  nickname: string
+  birthday: string
+  location: string
+  phone: string
+  created_at: string
+  updated_at: string
+  profile_picture_url: string | null
+  device_id: string | null
+  is_active: boolean
 }
 
 export interface UserReport {
@@ -114,13 +132,86 @@ class AtoApiService {
 
   // Managers API
   async getManagerById(managerId: string): Promise<AtoManager> {
+    if (USE_MOCK_DATA) {
+      // Simulate network delay
+      await new Promise(resolve => setTimeout(resolve, 500))
+
+      const manager = MOCK_MANAGERS[managerId]
+      if (!manager) {
+        throw new Error(`Manager with id ${managerId} not found`)
+      }
+      return manager
+    }
+
     return this.makeRequest<AtoManager>(`/managers/${managerId}`)
+  }
+
+  // Users API
+  async getUserById(userId: string): Promise<AtoUser> {
+    if (USE_MOCK_DATA) {
+      // Simulate network delay
+      await new Promise(resolve => setTimeout(resolve, 500))
+
+      const user = MOCK_USERS[userId]
+      if (!user) {
+        throw new Error(`User with id ${userId} not found`)
+      }
+      return user
+    }
+
+    return this.makeRequest<AtoUser>(`/users/${userId}`)
+  }
+
+  async getUsersByManagerId(managerId: string): Promise<AtoUser[]> {
+    if (USE_MOCK_DATA) {
+      // Simulate network delay
+      await new Promise(resolve => setTimeout(resolve, 600))
+
+      // In mock mode, return all users that are managed by this manager
+      // In real API, this would filter by manager_id relationship
+      const manager = MOCK_MANAGERS[managerId]
+      if (!manager || !manager.user_id) {
+        return []
+      }
+
+      // Return the user associated with this manager
+      const user = MOCK_USERS[manager.user_id]
+      return user ? [user] : []
+    }
+
+    return this.makeRequest<AtoUser[]>(`/managers/${managerId}/users`)
   }
 
   // Reports API
   async getUserReport(userId: string): Promise<UserReport> {
+    if (USE_MOCK_DATA) {
+      // Simulate network delay
+      await new Promise(resolve => setTimeout(resolve, 800))
+
+      const report = MOCK_REPORTS[userId]
+      if (!report) {
+        // Return a default empty report if user not found
+        return {
+          user_id: userId,
+          report_generated_at: new Date().toISOString(),
+          summary: {
+            total_contacts: 0,
+            total_reminders: 0,
+            active_reminders: 0,
+            completed_reminders: 0,
+          },
+          recent_activity: [],
+          upcoming_reminders: [],
+        }
+      }
+      return report
+    }
+
     return this.makeRequest<UserReport>(`/reports/${userId}`)
   }
 }
 
 export const atoApi = new AtoApiService()
+
+// Re-export mock IDs for convenience
+export { MOCK_IDS } from './ato-api.mocks'
