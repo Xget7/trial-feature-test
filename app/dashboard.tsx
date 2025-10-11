@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect } from 'react'
 import { SafeAreaView, ScrollView, StyleSheet, View } from 'react-native'
 import { useAuth } from '../components/AuthProvider'
 import { useAto } from '../contexts/AtoContext'
@@ -12,38 +12,21 @@ import { useI18n } from '../components/I18nProvider'
 
 export default function DashboardScreen() {
   const router = useRouter()
-  const { user, session, loading: authLoading } = useAuth()
-  const { currentManager, initializeManagerAndUsers, loading, error } = useAto()
+  const { user, loading: authLoading } = useAuth()
+  const { currentManager, loading, error } = useAto()
   const { t } = useI18n()
-  const [initializing, setInitializing] = useState(true)
 
+  // Redirect to login if not authenticated
   useEffect(() => {
     if (!authLoading && !user) {
+      console.log('No user found, redirecting to login')
       router.replace('/login')
     }
   }, [user, authLoading, router])
 
-  // Initialize manager and user data when authenticated
-  useEffect(() => {
-    const initializeData = async () => {
-      if (!user || !session?.access_token) return
-
-      try {
-        setInitializing(true)
-        await initializeManagerAndUsers(user.id, session.access_token)
-      } catch (err) {
-        console.error('Error initializing data:', err)
-      } finally {
-        setInitializing(false)
-      }
-    }
-
-    if (user && session && !currentManager && !loading) {
-      initializeData()
-    }
-  }, [user, session, currentManager, loading, initializeManagerAndUsers])
-
-  if (authLoading || initializing || loading) {
+  // Show loading state
+  if (authLoading || loading) {
+    console.log('Dashboard loading...', { authLoading, loading })
     return (
       <SafeAreaView style={styles.container}>
         <LoadingDisplay message={t('dashboard.loadingDashboard')} />
@@ -52,22 +35,15 @@ export default function DashboardScreen() {
   }
 
   if (error) {
+    console.log('Dashboard error:', error)
     return (
       <SafeAreaView style={styles.container}>
-        <ErrorDisplay
-          error={error}
-          onRetry={() => {
-            setInitializing(true)
-            if (user && session?.access_token) {
-              initializeManagerAndUsers(user.id, session.access_token)
-            }
-          }}
-          onDismiss={() => {}}
-        />
+        <ErrorDisplay error={error} onRetry={() => router.replace('/login')} onDismiss={() => {}} />
       </SafeAreaView>
     )
   }
 
+  console.log('Dashboard ready with manager:', currentManager?.name)
   return (
     <View style={styles.container}>
       <SafeAreaView style={styles.safeArea}>

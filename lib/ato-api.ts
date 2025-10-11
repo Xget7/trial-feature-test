@@ -1,7 +1,10 @@
+// lib/ato-api.ts
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { supabase } from './supabase'
+import { MOCK_MANAGERS, MOCK_USERS, MOCK_REPORTS } from './ato-api.mocks'
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || ''
 const TOKEN_KEY = 'ato_api_token'
+const USE_MOCK_DATA = process.env.EXPO_PUBLIC_USE_MOCK_API === 'true'
 
 export interface AtoManager {
   id: string
@@ -17,6 +20,22 @@ export interface AtoManager {
   updated_at: string
   user_id: string | null
   relationship: string | null
+}
+
+export interface AtoUser {
+  id: string
+  name: string
+  surname: string
+  other_names: string | null
+  nickname: string
+  birthday: string
+  location: string
+  phone: string
+  created_at: string
+  updated_at: string
+  profile_picture_url: string | null
+  device_id: string | null
+  is_active: boolean
 }
 
 export interface UserReport {
@@ -40,6 +59,27 @@ export interface UserReport {
   }[]
 }
 
+export interface ContactMethod {
+  method: 'WHATSAPP' | 'SMS' | 'EMAIL' | 'PHONE'
+  value: string
+  is_primary: boolean
+  description?: string
+}
+
+export interface Contact {
+  id: string
+  user_id: string
+  name: string
+  surname: string
+  relationship: string
+  other_names: string[] | null
+  birthday: string | null
+  location: string | null
+  contact_methods: ContactMethod[]
+  created_at: string
+  updated_at: string
+}
+
 class AtoApiService {
   private async getToken(): Promise<string | null> {
     try {
@@ -58,47 +98,6 @@ class AtoApiService {
     }
   }
 
-  private async makeRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const token = await this.getToken()
-
-    if (!token) {
-      throw new Error('No authentication token found')
-    }
-
-    const url = `${API_BASE_URL}${endpoint}`
-
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-        ...options.headers,
-      },
-    })
-
-    if (!response.ok) {
-      if (response.status === 401) {
-        throw new Error('Unauthorized - please log in again')
-      }
-
-      let errorMessage = `Request failed with status ${response.status}`
-      try {
-        const errorData = await response.json()
-        errorMessage = errorData.detail || errorData.message || errorMessage
-      } catch {
-        errorMessage = (await response.text()) || errorMessage
-      }
-
-      throw new Error(errorMessage)
-    }
-
-    if (response.status === 204) {
-      return {} as T
-    }
-
-    return response.json()
-  }
-
   // Authentication
   async setAuthToken(token: string): Promise<void> {
     await this.setToken(token)
@@ -114,13 +113,169 @@ class AtoApiService {
 
   // Managers API
   async getManagerById(managerId: string): Promise<AtoManager> {
-    return this.makeRequest<AtoManager>(`/managers/${managerId}`)
+    if (USE_MOCK_DATA) {
+      console.log('🎭 Mock mode: Getting manager', managerId)
+      await new Promise(resolve => setTimeout(resolve, 500))
+
+      const manager = MOCK_MANAGERS[managerId]
+      if (!manager) {
+        throw new Error(`Manager with id ${managerId} not found`)
+      }
+      return manager
+    }
+
+    // Usar Supabase directamente
+    console.log('🔐 Real mode: Getting manager from Supabase', managerId)
+    const { data, error } = await supabase.from('managers').select('*').eq('id', managerId).single()
+
+    if (error) {
+      console.error('Supabase error getting manager:', error)
+      throw new Error(`Manager with id ${managerId} not found`)
+    }
+
+    if (!data) {
+      throw new Error(`Manager with id ${managerId} not found`)
+    }
+
+    return data
+  }
+
+  // Users API
+  async getUserById(userId: string): Promise<AtoUser> {
+    if (USE_MOCK_DATA) {
+      console.log('🎭 Mock mode: Getting user', userId)
+      await new Promise(resolve => setTimeout(resolve, 500))
+
+      const user = MOCK_USERS[userId]
+      if (!user) {
+        throw new Error(`User with id ${userId} not found`)
+      }
+      return user
+    }
+
+    // Usar Supabase directamente
+    console.log('🔐 Real mode: Getting user from Supabase', userId)
+    const { data, error } = await supabase.from('users').select('*').eq('id', userId).single()
+
+    if (error) {
+      console.error('Supabase error getting user:', error)
+      throw new Error(`User with id ${userId} not found`)
+    }
+
+    if (!data) {
+      throw new Error(`User with id ${userId} not found`)
+    }
+
+    return data
+  }
+
+  async getUsersByManagerId(managerId: string): Promise<AtoUser[]> {
+    if (USE_MOCK_DATA) {
+      console.log('🎭 Mock mode: Getting users for manager', managerId)
+      await new Promise(resolve => setTimeout(resolve, 600))
+
+      const manager = MOCK_MANAGERS[managerId]
+      if (!manager || !manager.user_id) {
+        return []
+      }
+
+      const user = MOCK_USERS[manager.user_id]
+      return user ? [user] : []
+    }
+
+    // Usar Supabase directamente con JOIN
+    console.log('🔐 Real mode: Getting users from Supabase for manager', managerId)
+    const { data, error } = await supabase
+      .from('manager_users')
+      .select(
+        `
+        user_id,
+        users (*)
+      `
+      )
+      .eq('manager_id', managerId)
+
+    if (error) {
+      console.error('Supabase error getting users:', error)
+      return []
+    }
+
+    if (!data || data.length === 0) {
+      console.log('No users found for manager', managerId)
+      return []
+    }
+
+    // Extraer los usuarios del resultado del JOIN
+    const users = data.map((item: any) => item.users).filter(Boolean)
+
+    return users
   }
 
   // Reports API
   async getUserReport(userId: string): Promise<UserReport> {
-    return this.makeRequest<UserReport>(`/reports/${userId}`)
+    if (USE_MOCK_DATA) {
+      console.log('🎭 Mock mode: Getting report for user', userId)
+      await new Promise(resolve => setTimeout(resolve, 800))
+
+      const report = MOCK_REPORTS[userId]
+      if (!report) {
+        return {
+          user_id: userId,
+          report_generated_at: new Date().toISOString(),
+          summary: {
+            total_contacts: 0,
+            total_reminders: 0,
+            active_reminders: 0,
+            completed_reminders: 0,
+          },
+          recent_activity: [],
+          upcoming_reminders: [],
+        }
+      }
+      return report
+    }
+
+    // Por ahora devolver reporte vacío - implementar cuando tengas la tabla de reportes
+    console.log('🔐 Real mode: Getting report (mock data for now)')
+    return {
+      user_id: userId,
+      report_generated_at: new Date().toISOString(),
+      summary: {
+        total_contacts: 0,
+        total_reminders: 0,
+        active_reminders: 0,
+        completed_reminders: 0,
+      },
+      recent_activity: [],
+      upcoming_reminders: [],
+    }
+  }
+
+  // Contacts API
+  async getContactsForUser(userId: string): Promise<Contact[]> {
+    if (USE_MOCK_DATA) {
+      console.log('🎭 Mock mode: Getting contacts for user', userId)
+      await new Promise(resolve => setTimeout(resolve, 600))
+
+      const { MOCK_CONTACTS } = await import('./ato-api.mocks')
+      const userContacts = MOCK_CONTACTS[userId] || []
+      return userContacts
+    }
+
+    // Usar Supabase directamente
+    console.log('🔐 Real mode: Getting contacts from Supabase for user', userId)
+    const { data, error } = await supabase.from('contacts').select('*').eq('user_id', userId)
+
+    if (error) {
+      console.error('Supabase error getting contacts:', error)
+      return []
+    }
+
+    return data || []
   }
 }
 
 export const atoApi = new AtoApiService()
+
+// Re-export mock IDs for convenience
+export { MOCK_IDS } from './ato-api.mocks'

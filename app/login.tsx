@@ -15,12 +15,15 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native'
-import AsyncStorage from '@react-native-async-storage/async-storage'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../components/AuthProvider'
 import { useI18n } from '../components/I18nProvider'
 import ErrorModal from '../components/ErrorModal'
 import ContactPopup from '../components/ContactPopup'
+import { AuthStrategyResolver } from '../lib/auth/auth-strategies'
+
+const OTP_LENGTH = 6
+const AUTO_VERIFY_DELAY = 300
 
 export default function LoginScreen() {
   const router = useRouter()
@@ -42,14 +45,14 @@ export default function LoginScreen() {
   }, [user, authLoading, router])
 
   const handleOpenEmail = async () => {
-    try {
-      const emailApps = [
-        { name: 'Gmail', url: 'googlegmail://' },
-        { name: 'Outlook', url: 'ms-outlook://' },
-        { name: 'Yahoo Mail', url: 'ymail://' },
-        { name: 'Apple Mail', url: 'message://' },
-      ]
+    const emailApps = [
+      { name: 'Gmail', url: 'googlegmail://' },
+      { name: 'Outlook', url: 'ms-outlook://' },
+      { name: 'Yahoo Mail', url: 'ymail://' },
+      { name: 'Apple Mail', url: 'message://' },
+    ]
 
+    try {
       for (const app of emailApps) {
         const canOpen = await Linking.canOpenURL(app.url)
         if (canOpen) {
@@ -69,12 +72,12 @@ export default function LoginScreen() {
   const handlePasteOtp = async () => {
     try {
       const clipboardContent = await Clipboard.getString()
-      if (clipboardContent && clipboardContent.length === 6 && /^\d+$/.test(clipboardContent)) {
+      const isValidOtp =
+        clipboardContent && clipboardContent.length === OTP_LENGTH && /^\d+$/.test(clipboardContent)
+
+      if (isValidOtp) {
         setOtp(clipboardContent)
-        // Auto-verify after pasting
-        setTimeout(() => {
-          handleVerifyOtp(clipboardContent)
-        }, 100)
+        setTimeout(() => handleVerifyOtp(clipboardContent), 100)
       } else {
         setError(t('auth.errors.invalidCodeInClipboard'))
         setShowErrorModal(true)
@@ -88,7 +91,7 @@ export default function LoginScreen() {
   const handleVerifyOtp = async (codeToVerify?: string) => {
     const otpCode = codeToVerify || otp
 
-    if (!otpCode || otpCode.length !== 6) {
+    if (!otpCode || otpCode.length !== OTP_LENGTH) {
       setError(t('auth.errors.invalidCode'))
       setShowErrorModal(true)
       return
@@ -96,58 +99,14 @@ export default function LoginScreen() {
 
     setVerifyingOtp(true)
 
-    // Store testing bypass: accept test token for test email
-    if (email === 'gaspi+store-testing@ato.ar' && otpCode === '181302') {
-      setTimeout(() => {
-        // Create a mock session with the provided manager ID
-        const mockUser = {
-          id: '32d49772-89e0-4f23-a80d-b3211888d3a2',
-          email: 'gaspi+store-testing@ato.ar',
-          email_confirmed_at: new Date().toISOString(),
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          user_metadata: { manager_id: '32d49772-89e0-4f23-a80d-b3211888d3a2' },
-          app_metadata: {},
-          aud: 'authenticated',
-          confirmation_sent_at: new Date().toISOString(),
-          recovery_sent_at: new Date().toISOString(),
-          email_change_sent_at: new Date().toISOString(),
-          new_email: null,
-          invited_at: null,
-          action_link: null,
-          phone: null,
-          phone_confirmed_at: null,
-          phone_change_sent_at: null,
-          confirmed_at: new Date().toISOString(),
-          email_change_confirm_status: 0,
-          banned_until: null,
-          reauthentication_sent_at: null,
-          is_anonymous: false,
-        } as any
-
-        // Store the mock user data for store testing
-        AsyncStorage.setItem('ato-store-testing-user', JSON.stringify(mockUser))
-
-        setVerifyingOtp(false)
-        router.replace('/dashboard')
-      }, 1000) // Simulate verification delay
-      return
-    }
-
     try {
-      const { error } = await supabase.auth.verifyOtp({
-        email,
-        token: otpCode,
-        type: 'email',
-      })
+      const strategyResolver = new AuthStrategyResolver()
+      const strategy = strategyResolver.resolve(email, otpCode)
 
-      if (error) {
-        setError(t('auth.errors.verificationError'))
-        setShowErrorModal(true)
-      } else {
-        router.replace('/dashboard')
-      }
-    } catch {
+      await strategy.authenticate(email, otpCode)
+
+      router.replace('/dashboard')
+    } catch (err) {
       setError(t('auth.errors.verificationError'))
       setShowErrorModal(true)
     } finally {
@@ -157,11 +116,9 @@ export default function LoginScreen() {
 
   const handleOtpChange = (value: string) => {
     setOtp(value)
-    // Auto-verify when 6 digits are entered
-    if (value.length === 6 && /^\d{6}$/.test(value)) {
-      setTimeout(() => {
-        handleVerifyOtp(value)
-      }, 300) // Small delay to let user see the complete input
+
+    if (value.length === OTP_LENGTH && /^\d{6}$/.test(value)) {
+      setTimeout(() => handleVerifyOtp(value), AUTO_VERIFY_DELAY)
     }
   }
 
@@ -169,16 +126,6 @@ export default function LoginScreen() {
     if (!email) {
       setError(t('auth.errors.emailNotProvided'))
       setShowErrorModal(true)
-      return
-    }
-
-    // Store testing bypass: skip server request for test email
-    if (email === 'gaspi+store-testing@ato.ar') {
-      setLoading(true)
-      setTimeout(() => {
-        setEmailSent(true)
-        setLoading(false)
-      }, 1000) // Simulate loading delay for realistic UX
       return
     }
 
@@ -213,12 +160,10 @@ export default function LoginScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <View style={styles.content}>
-          {/* Logo */}
           <View style={styles.logoContainer}>
             <AtoLogo width={200} height={92} color="#FFFFFF" />
           </View>
 
-          {/* Form */}
           <View style={styles.formContainer}>
             {!emailSent ? (
               <>
@@ -275,7 +220,7 @@ export default function LoginScreen() {
                         onChangeText={handleOtpChange}
                         placeholder={t('auth.verificationCodePlaceholder')}
                         keyboardType="number-pad"
-                        maxLength={6}
+                        maxLength={OTP_LENGTH}
                         autoComplete="one-time-code"
                         textContentType="oneTimeCode"
                         placeholderTextColor="#9CA3AF"
@@ -291,7 +236,7 @@ export default function LoginScreen() {
 
                   <Text style={styles.emailSentDescription}>{t('auth.emailSentDescription')}</Text>
 
-                  {otp.length > 0 && otp.length < 6 && !verifyingOtp && (
+                  {otp.length > 0 && otp.length < OTP_LENGTH && !verifyingOtp && (
                     <TouchableOpacity
                       style={[styles.verifyButton, styles.buttonDisabled]}
                       disabled={true}
@@ -303,7 +248,7 @@ export default function LoginScreen() {
                         end={{ x: 1, y: 0 }}
                       >
                         <Text style={[styles.buttonText, { color: '#6B7280' }]}>
-                          {6 - otp.length} {t('auth.digitsRemaining')}
+                          {OTP_LENGTH - otp.length} {t('auth.digitsRemaining')}
                         </Text>
                       </LinearGradient>
                     </TouchableOpacity>
@@ -350,7 +295,6 @@ export default function LoginScreen() {
             )}
           </View>
 
-          {/* Footer - only show create account when not in verification mode */}
           {!emailSent && (
             <TouchableOpacity
               style={styles.footer}
@@ -392,19 +336,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 48,
   },
-  logoImage: {
-    width: 120,
-    height: 60,
-  },
   formContainer: {
     marginBottom: 60,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginBottom: 24,
-    textAlign: 'left',
   },
   inputContainer: {
     marginBottom: 32,
@@ -424,7 +357,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     backgroundColor: '#FFFFFF',
     color: '#111827',
-    letterSpacing: 0,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -524,13 +456,6 @@ const styles = StyleSheet.create({
   },
   otpContainer: {
     marginBottom: 24,
-  },
-  otpLabel: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginBottom: 12,
-    textAlign: 'center',
   },
   otpInputContainer: {
     marginBottom: 16,

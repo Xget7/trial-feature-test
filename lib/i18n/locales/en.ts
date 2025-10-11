@@ -138,4 +138,14 @@ export const en: Translations = {
     smsError: 'Could not open SMS',
     emailError: 'Could not open email client',
   },
+  userStatus: {
+    noUserSelected: 'No user selected',
+    loadingStatus: 'Loading status...',
+    recentActivity: '{userName} has recent activity',
+    lastActivity: '{userName} last activity: {date}',
+    noRecentActivity: '{userName} no recent activity',
+    selectUserPrompt: 'Select a user to view their status',
+    noRecentUpdates: '{userName} no recent updates',
+    noConversationToday: "I haven't talked to {userName} today and have no recent data.",
+  },
 }

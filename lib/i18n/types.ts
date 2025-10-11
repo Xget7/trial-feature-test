@@ -135,6 +135,16 @@ export interface Translations {
     smsError: string
     emailError: string
   }
+  userStatus: {
+    noUserSelected: string
+    loadingStatus: string
+    recentActivity: string
+    lastActivity: string
+    noRecentActivity: string
+    selectUserPrompt: string
+    noRecentUpdates: string
+    noConversationToday: string
+  }
 }
 
 export type TranslationKey = keyof Translations

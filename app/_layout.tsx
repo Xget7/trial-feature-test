@@ -17,14 +17,13 @@ export default function RootLayout() {
   })
 
   if (!loaded) {
-    // Async font loading only occurs in development.
     return null
   }
 
   return (
     <I18nProvider>
-      <AuthProvider>
-        <AtoProvider>
+      <AtoProvider>
+        <AuthProvider>
           <AuthGuard>
             <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
               <Stack>
@@ -40,8 +39,8 @@ export default function RootLayout() {
               <StatusBar style="auto" />
             </ThemeProvider>
           </AuthGuard>
-        </AtoProvider>
-      </AuthProvider>
+        </AuthProvider>
+      </AtoProvider>
     </I18nProvider>
   )
 }

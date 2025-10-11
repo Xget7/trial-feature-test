@@ -1,6 +1,7 @@
 import React from 'react'
 import { View, Text, StyleSheet } from 'react-native'
 import { useAto } from '../contexts/AtoContext'
+import { t } from '../lib/i18n'
 
 export const UserStatusSection: React.FC = () => {
   const { selectedUser } = useAto()
@@ -9,24 +10,21 @@ export const UserStatusSection: React.FC = () => {
     return (
       <View style={styles.container}>
         <View style={styles.card}>
-          <Text style={styles.title}>No hay usuario seleccionado</Text>
-          <Text style={styles.subtitle}>Selecciona un usuario para ver su estado</Text>
+          <Text style={styles.title}>{t('userStatus.noUserSelected')}</Text>
+          <Text style={styles.subtitle}>{t('userStatus.selectUserPrompt')}</Text>
         </View>
       </View>
     )
   }
 
+  const userName = selectedUser.nickname || selectedUser.name
+
   return (
     <View style={styles.container}>
       <View style={styles.card}>
         <View style={styles.content}>
-          <Text style={styles.title}>
-            {selectedUser.nickname || selectedUser.name} sin novedades recientes
-          </Text>
-          <Text style={styles.subtitle}>
-            No he hablado con {selectedUser.nickname || selectedUser.name} hoy ni tengo datos
-            recientes.
-          </Text>
+          <Text style={styles.title}>{t('userStatus.noRecentUpdates', { userName })}</Text>
+          <Text style={styles.subtitle}>{t('userStatus.noConversationToday', { userName })}</Text>
           <View style={styles.emojiContainer}>
             <Text style={styles.emoji}>😊</Text>
           </View>
