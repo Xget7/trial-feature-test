@@ -21,6 +21,7 @@ import { useAuth } from '../components/AuthProvider'
 import { useI18n } from '../components/I18nProvider'
 import ErrorModal from '../components/ErrorModal'
 import ContactPopup from '../components/ContactPopup'
+import { atoApi, MOCK_IDS } from '../lib/ato-api'
 
 export default function LoginScreen() {
   const router = useRouter()
@@ -96,9 +97,76 @@ export default function LoginScreen() {
 
     setVerifyingOtp(true)
 
-    // Store testing bypass: accept test token for test email
+    // Check if mock mode is enabled
+    const useMockMode =
+      process.env.EXPO_PUBLIC_USE_MOCK_API === 'true' || !process.env.EXPO_PUBLIC_API_BASE_URL
+
+    // Mock mode: accept code "123456" for any email
+    if (useMockMode && otpCode === '123456') {
+      setTimeout(async () => {
+        try {
+          // Determine which mock manager to use based on email
+          let managerId: string = MOCK_IDS.managers.maria
+          let mockEmail = 'maria@ato.ar'
+
+          if (email.toLowerCase().includes('carlos')) {
+            managerId = MOCK_IDS.managers.carlos
+            mockEmail = 'carlos@ato.ar'
+          } else if (
+            email.toLowerCase().includes('maria') ||
+            email.toLowerCase().includes('mari')
+          ) {
+            managerId = MOCK_IDS.managers.maria
+            mockEmail = 'maria@ato.ar'
+          }
+
+          // Create a mock session with the selected manager ID
+          const mockUser = {
+            id: managerId,
+            email: mockEmail,
+            email_confirmed_at: new Date().toISOString(),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            user_metadata: { manager_id: managerId },
+            app_metadata: {},
+            aud: 'authenticated',
+            confirmation_sent_at: new Date().toISOString(),
+            recovery_sent_at: new Date().toISOString(),
+            email_change_sent_at: new Date().toISOString(),
+            new_email: null,
+            invited_at: null,
+            action_link: null,
+            phone: null,
+            phone_confirmed_at: null,
+            phone_change_sent_at: null,
+            confirmed_at: new Date().toISOString(),
+            email_change_confirm_status: 0,
+            banned_until: null,
+            reauthentication_sent_at: null,
+            is_anonymous: false,
+          } as any
+
+          // Store the mock user data
+          await AsyncStorage.setItem('ato-mock-user', JSON.stringify(mockUser))
+
+          // Set a mock token for the API
+          await atoApi.setAuthToken('mock-token-' + managerId)
+
+          setVerifyingOtp(false)
+          router.replace('/dashboard')
+        } catch (error) {
+          console.error('Error setting up mock session:', error)
+          setError(t('auth.errors.verificationError'))
+          setShowErrorModal(true)
+          setVerifyingOtp(false)
+        }
+      }, 1000) // Simulate verification delay
+      return
+    }
+
+    // Store testing bypass: accept test token for test email (legacy support)
     if (email === 'gaspi+store-testing@ato.ar' && otpCode === '181302') {
-      setTimeout(() => {
+      setTimeout(async () => {
         // Create a mock session with the provided manager ID
         const mockUser = {
           id: '32d49772-89e0-4f23-a80d-b3211888d3a2',
@@ -126,7 +194,7 @@ export default function LoginScreen() {
         } as any
 
         // Store the mock user data for store testing
-        AsyncStorage.setItem('ato-store-testing-user', JSON.stringify(mockUser))
+        await AsyncStorage.setItem('ato-store-testing-user', JSON.stringify(mockUser))
 
         setVerifyingOtp(false)
         router.replace('/dashboard')
@@ -134,6 +202,7 @@ export default function LoginScreen() {
       return
     }
 
+    // Real authentication with Supabase
     try {
       const { error } = await supabase.auth.verifyOtp({
         email,
@@ -193,12 +262,14 @@ export default function LoginScreen() {
       })
 
       if (error) {
+        console.log(error)
         setError(t('auth.errors.somethingWentWrong'))
         setShowErrorModal(true)
       } else {
         setEmailSent(true)
       }
     } catch {
+      console.log(error)
       setError(t('auth.errors.somethingWentWrong'))
       setShowErrorModal(true)
     } finally {

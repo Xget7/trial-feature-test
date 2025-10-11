@@ -1,9 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { Session, User } from '@supabase/supabase-js'
-import { supabase } from '../lib/supabase'
-import * as Linking from 'expo-linking'
-import * as QueryParams from 'expo-auth-session/build/QueryParams'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { supabase } from '../lib/supabase'
+import { useAto } from '../contexts/AtoContext'
 
 interface AuthContextType {
   user: User | null
@@ -26,116 +25,136 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
+  const { initializeManagerAndUsers } = useAto()
 
-  const createSessionFromUrl = async (url: string) => {
-    try {
-      const { params } = QueryParams.getQueryParams(url)
-      const { access_token, refresh_token } = params
+  useEffect(() => {
+    let authSubscription: any = null
 
-      if (!access_token) return
+    const initializeAuth = async () => {
+      try {
+        // Step 1: Check for mock user first
+        const mockUserData = await AsyncStorage.getItem('ato-mock-user')
 
-      const { data, error } = await supabase.auth.setSession({
-        access_token,
-        refresh_token,
-      })
+        if (mockUserData) {
+          console.log('🎭 Mock mode detected - loading mock user')
+          const mockUser = JSON.parse(mockUserData)
+          console.log('Mock user ID:', mockUser.id)
 
-      if (error) throw error
-      return data.session
-    } catch (error) {
-      console.error('Error creating session from URL:', error)
-      return null
+          setUser(mockUser)
+          setSession({
+            access_token: 'mock-token-' + mockUser.id,
+            refresh_token: 'mock-refresh-token',
+            expires_in: 3600,
+            token_type: 'bearer',
+            user: mockUser,
+          } as Session)
+
+          // Initialize with mock data
+          console.log('Initializing with mock manager ID:', mockUser.id)
+          await initializeManagerAndUsers(
+            mockUser.id, // 'mock-manager-1' or 'mock-manager-2'
+            'mock-token-' + mockUser.id
+          )
+
+          setLoading(false)
+          return // Exit early - don't set up Supabase listeners
+        }
+
+        // Step 2: Check for legacy store testing user
+        const storeTestingUserData = await AsyncStorage.getItem('ato-store-testing-user')
+
+        if (storeTestingUserData) {
+          console.log('🧪 Store testing mode detected')
+          const storeTestingUser = JSON.parse(storeTestingUserData)
+
+          setUser(storeTestingUser)
+          setSession({
+            access_token: 'mock-token-' + storeTestingUser.id,
+            refresh_token: 'mock-refresh-token',
+            expires_in: 3600,
+            token_type: 'bearer',
+            user: storeTestingUser,
+          } as Session)
+
+          await initializeManagerAndUsers(storeTestingUser.id, 'mock-token-' + storeTestingUser.id)
+
+          setLoading(false)
+          return // Exit early
+        }
+
+        // Step 3: No mock user - set up real Supabase authentication
+        console.log('🔐 Real auth mode - setting up Supabase')
+
+        // Set up Supabase auth listener
+        const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+          console.log('Auth state changed:', event, session?.user?.id)
+
+          if (session?.user) {
+            setSession(session)
+            setUser(session.user)
+
+            // Initialize manager and users data
+            await initializeManagerAndUsers(session.user.id, session.access_token)
+          } else {
+            setSession(null)
+            setUser(null)
+          }
+
+          setLoading(false)
+        })
+
+        authSubscription = authListener.subscription
+
+        // Get initial session
+        const {
+          data: { session: initialSession },
+        } = await supabase.auth.getSession()
+
+        if (initialSession?.user) {
+          console.log('Found existing Supabase session')
+          setSession(initialSession)
+          setUser(initialSession.user)
+          await initializeManagerAndUsers(initialSession.user.id, initialSession.access_token)
+        }
+
+        setLoading(false)
+      } catch (error) {
+        console.error('Error initializing auth:', error)
+        setLoading(false)
+      }
     }
-  }
+
+    initializeAuth()
+
+    // Cleanup
+    return () => {
+      if (authSubscription) {
+        authSubscription.unsubscribe()
+      }
+    }
+  }, [])
 
   const signOut = async () => {
     try {
-      // Clear store testing data if present
+      console.log('Signing out...')
+
+      // Clear all mock user data
+      await AsyncStorage.removeItem('ato-mock-user')
       await AsyncStorage.removeItem('ato-store-testing-user')
 
       // Sign out from Supabase
       await supabase.auth.signOut()
 
-      // Clear local state
       setUser(null)
       setSession(null)
+
+      console.log('Signed out successfully')
     } catch (error) {
       console.error('Error signing out:', error)
     }
   }
 
-  useEffect(() => {
-    const initializeAuth = async () => {
-      // Check for store testing mode first
-      try {
-        const storeTestingUser = await AsyncStorage.getItem('ato-store-testing-user')
-        if (storeTestingUser) {
-          const mockUser = JSON.parse(storeTestingUser) as User
-          setUser(mockUser)
-          setSession({
-            user: mockUser,
-            access_token: 'store-testing-token',
-            refresh_token: 'store-testing-refresh',
-            expires_in: 3600,
-            token_type: 'bearer',
-            expires_at: Date.now() / 1000 + 3600
-          } as Session)
-          setLoading(false)
-          return
-        }
-      } catch (error) {
-        console.error('Error checking store testing mode:', error)
-      }
-
-      // Get initial session from Supabase
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        setSession(session)
-        setUser(session?.user ?? null)
-        setLoading(false)
-      })
-    }
-
-    initializeAuth()
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      // Don't override store testing mode
-      const storeTestingUser = await AsyncStorage.getItem('ato-store-testing-user')
-      if (!storeTestingUser) {
-        setSession(session)
-        setUser(session?.user ?? null)
-      }
-      setLoading(false)
-    })
-
-    return () => subscription.unsubscribe()
-  }, [])
-
-  // Handle deep linking for magic links
-  useEffect(() => {
-    const handleDeepLink = (url: string) => {
-      if (url.includes('atoapp://auth/callback')) {
-        createSessionFromUrl(url)
-      }
-    }
-
-    // Handle initial URL if app was opened from a link
-    Linking.getInitialURL().then(url => {
-      if (url) {
-        handleDeepLink(url)
-      }
-    })
-
-    // Listen for URL changes
-    const subscription = Linking.addEventListener('url', ({ url }) => {
-      handleDeepLink(url)
-    })
-
-    return () => subscription?.remove()
-  }, [])
-
-  const value = {
+  const value: AuthContextType = {
     user,
     session,
     loading,

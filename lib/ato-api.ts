@@ -3,7 +3,7 @@ import { MOCK_MANAGERS, MOCK_USERS, MOCK_REPORTS } from './ato-api.mocks'
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || ''
 const TOKEN_KEY = 'ato_api_token'
-const USE_MOCK_DATA = process.env.EXPO_PUBLIC_USE_MOCK_API === 'true' || !API_BASE_URL
+const USE_MOCK_DATA = process.env.EXPO_PUBLIC_USE_MOCK_API === 'true'
 
 export interface AtoManager {
   id: string
