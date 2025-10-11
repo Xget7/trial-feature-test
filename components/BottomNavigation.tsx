@@ -1,7 +1,9 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { useRouter, usePathname } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import { AtoAssistantIcon } from './atoAssistant/AtoAssistantIcon'
+import { AtoAssistantSheet } from './atoAssistant/AtoAssistantSheet'
 
 type IconName = keyof typeof Ionicons.glyphMap
 
@@ -9,6 +11,7 @@ interface Tab {
   label: string
   iconName: IconName
   route: string
+  isBig?: boolean
 }
 
 interface TabItemProps extends Tab {
@@ -19,6 +22,7 @@ interface TabItemProps extends Tab {
 const TABS: Tab[] = [
   { label: 'Inicio', iconName: 'home', route: '/dashboard' },
   { label: 'Contactos', iconName: 'book', route: '/contacts' },
+  { label: 'Chat', iconName: 'chatbubble', route: '/chat', isBig: true },
   { label: 'Perfil', iconName: 'person', route: '/profile' },
   { label: 'Ajustes', iconName: 'settings', route: '/settings' },
 ]
@@ -29,6 +33,7 @@ const COLORS = {
   background: '#FFFFFF',
   shadow: '#3B82F6',
   activeBackground: '#EBF4FF',
+  bigButtonBg: '#3B82F6',
 } as const
 
 const TabItem: React.FC<TabItemProps> = ({ label, iconName, onPress, isActive }) => (
@@ -40,29 +45,80 @@ const TabItem: React.FC<TabItemProps> = ({ label, iconName, onPress, isActive })
   </TouchableOpacity>
 )
 
+const TabBigItem: React.FC<TabItemProps> = ({ label, iconName, onPress, isActive }) => (
+  <TouchableOpacity style={styles.bigTabItem} onPress={onPress} activeOpacity={0.7}>
+    <View style={styles.iconBigContainer}>
+      <View style={styles.assistantIconBackground}>
+        <AtoAssistantIcon width={40} color="white" />
+      </View>
+    </View>
+  </TouchableOpacity>
+)
+
 export const BottomNavigation: React.FC = () => {
   const router = useRouter()
   const pathname = usePathname()
+  const [isAssistantModalVisible, setIsAssistantModalVisible] = useState(false)
 
   const handleTabPress = (route: string) => {
+    if (route === '/chat') {
+      setIsAssistantModalVisible(true)
+      return
+    }
     router.push(route as any)
   }
 
+  const bigTab = TABS.find(tab => tab.isBig)
+  const regularTabs = TABS.filter(tab => !tab.isBig)
+  const firstHalf = regularTabs.slice(0, 2)
+  const secondHalf = regularTabs.slice(2)
+
   return (
-    <View style={styles.container}>
-      <View style={styles.navBar}>
-        <View style={styles.tabContainer}>
-          {TABS.map(tab => (
-            <TabItem
-              key={tab.route}
-              {...tab}
-              isActive={pathname === tab.route}
-              onPress={() => handleTabPress(tab.route)}
+    <>
+      <View style={styles.container}>
+        {bigTab && (
+          <View style={styles.bigButtonWrapper}>
+            <TabBigItem
+              key={bigTab.route}
+              route={bigTab.route}
+              label={bigTab.label}
+              iconName={bigTab.iconName}
+              isActive={pathname === bigTab.route}
+              onPress={() => handleTabPress(bigTab.route)}
             />
-          ))}
+          </View>
+        )}
+
+        <View style={styles.navBar}>
+          <View style={styles.tabContainer}>
+            {firstHalf.map(tab => (
+              <TabItem
+                key={tab.route}
+                {...tab}
+                isActive={pathname === tab.route}
+                onPress={() => handleTabPress(tab.route)}
+              />
+            ))}
+
+            <View style={styles.bigButtonSpacer} />
+
+            {secondHalf.map(tab => (
+              <TabItem
+                key={tab.route}
+                {...tab}
+                isActive={pathname === tab.route}
+                onPress={() => handleTabPress(tab.route)}
+              />
+            ))}
+          </View>
         </View>
       </View>
-    </View>
+
+      <AtoAssistantSheet
+        visible={isAssistantModalVisible}
+        onClose={() => setIsAssistantModalVisible(false)}
+      />
+    </>
   )
 }
 
@@ -96,6 +152,38 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
     paddingVertical: 6,
+  },
+  bigTabItem: {
+    alignItems: 'center',
+  },
+  bigButtonWrapper: {
+    position: 'absolute',
+    bottom: 60,
+    left: '50%',
+    transform: [{ translateX: -32 }],
+    zIndex: 20,
+  },
+  bigButtonSpacer: {
+    flex: 1,
+  },
+  iconBigContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.bigButtonBg,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  assistantIconBackground: {
+    width: 80,
+    height: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   iconContainer: {
     width: 28,
