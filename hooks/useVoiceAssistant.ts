@@ -2,12 +2,14 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import * as voiceService from '../services/voiceService'
 import { initTTS, speak, stop, addEventListener, cleanup } from '../services/tts/hybridTTSService'
 import { callClaudeAgent, Message, ATO_SYSTEM_PROMPT } from '../services/aiAgent'
+const ELEVEN_LABS_API_KEY = process.env.EXPO_PUBLIC_ELEVEN_LABS_API_KEY
 
 interface UseVoiceAssistantOptions {
   language?: string
   systemPrompt?: string
   onError?: (error: Error) => void
   silenceTimeout?: number
+  elderlyName?: string
   // ElevenLabs options
   elevenLabsApiKey?: string
   preferCloudTTS?: boolean
@@ -32,11 +34,11 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
     language = 'es-ES',
     systemPrompt = ATO_SYSTEM_PROMPT,
     onError,
-    silenceTimeout = DEFAULT_SILENCE_TIMEOUT,
-    elevenLabsApiKey = process.env.ELEVEN_LABS_API_KEY,
+    elevenLabsApiKey = ELEVEN_LABS_API_KEY,
     preferCloudTTS = true,
     useConversationalAI = true,
-    voiceId = '21m00Tcm4TlvDq8ikWAM', // Default: Rachel voice
+    elderlyName = 'the elderly person',
+    voiceId = 'vgekQLm3GYiKMHUnPVvY', // Default: Rachel voice
   } = options
 
   const [state, setState] = useState<VoiceAssistantState>({
@@ -67,10 +69,10 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
         ? {
             elevenLabsApiKey,
             preferCloudTTS,
-            elevenLabsModel: 'eleven_turbo_v2_5' as const, // V3 Turbo
+            elevenLabsModel: 'eleven_multilingual_v2' as const,
           }
         : {
-            preferCloudTTS: false, // Use native only if no API key
+            preferCloudTTS: false,
           }
 
       const tts = initTTS(ttsConfig)
@@ -121,7 +123,10 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
         ]
 
         console.log('[AI] 🤖 Calling Claude...')
-        const agentResponse = await callClaudeAgent(newHistory, systemPrompt)
+        const agentResponse = await callClaudeAgent(newHistory, {
+          systemPrompt,
+          elderlyName: elderlyName,
+        })
         console.log('[AI] ✅ Response:', agentResponse)
 
         const updatedHistory: Message[] = [
@@ -136,12 +141,9 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
           isProcessing: false,
         }))
 
-        // Speak with conversational AI using V3 Turbo
-        console.log('[TTS] 🔊 Speaking with V3 Turbo...')
-
         const speakOptions = useConversationalAI
           ? {
-              conversational: true, // Use conversational AI mode
+              conversational: true,
               voiceId,
               optimizeStreamingLatency: 4, // Maximum speed for real-time
             }

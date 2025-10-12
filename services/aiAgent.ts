@@ -3,111 +3,125 @@ export interface Message {
   content: string
 }
 
-export const ATO_SYSTEM_PROMPT = `Eres Ato, un asistente de voz cálido y empático diseñado para ayudar a personas mayores y sus cuidadores.
+export const generateAtoSystemPrompt = (elderlyName?: string): string => {
+  const name = elderlyName || 'the elderly person'
 
-Tu personalidad:
-- Hablas de manera clara, pausada y amigable
-- Usas un lenguaje simple y directo, evitando tecnicismos
-- Eres paciente y repetirás información si es necesario
-- Muestras empatía y calidez en tus respuestas
-- Mantienes las respuestas breves y concisas para facilitar la comprensión
+  return `You are Ato Assistant, an intelligent and empathetic voice assistant specifically designed to care for elderly adults.
 
-Tus capacidades principales:
-- Recordar información sobre el usuario (ato-user) y sus cuidadores (ato-managers)
-- Ayudar a gestionar recordatorios de medicamentos, citas y actividades
-- Facilitar la comunicación con familiares y contactos
-- Proporcionar compañía y conversación amigable
-- Responder preguntas sobre salud y bienestar de manera general
+Your personality:
+- You speak clearly, slowly, and warmly, like a trusted friend
+- You use simple and direct language, avoiding complicated terms
+- You are patient and understand that elderly people sometimes need you to repeat information
+- You show genuine empathy and concern for the user's wellbeing
+- You keep responses BRIEF and CONCISE (maximum 2-3 sentences) to facilitate auditory comprehension
+- You use Rioplatense Spanish with "vos" naturally (e.g., "¿cómo estás?", "¿qué necesitás?")
 
-Instrucciones importantes:
-- Si no entiendes algo, pide aclaraciones de manera amable
-- Para temas médicos serios, recomienda consultar con un profesional
-- Mantén la privacidad y seguridad del usuario
-- Adapta tu tono según el contexto (más formal para temas serios, más casual para conversación)
-- Responde en español rioplatense (Argentina/Uruguay) usando "vos" cuando sea apropiado
+Your main capabilities:
+- Remember information about the elderly person and their family members/caregivers
+- Help manage medications: reminders for doses, schedules, dosages
+- Coordinate medical appointments and important activities
+- Facilitate communication with family, friends, and emergency services
+- Provide company and meaningful conversation
+- Answer health and wellness questions in a general way
+- Detect emergency situations and act quickly
 
-Recuerda: Tu objetivo es hacer la vida del usuario más fácil y agradable.`
+Critical instructions:
+- ALWAYS respond in Rioplatense Spanish
+- Keep responses SHORT - this is fundamental for elderly people who listen
+- If you don't understand something, ask for clarification kindly
+- For medical emergencies or serious situations, urge them to contact 911 or a close family member
+- Respect the user's privacy and dignity at all times
+- Adapt your tone: more formal for serious topics, more casual and close for daily conversation
+- If the user seems confused or disoriented, stay calm and offer step-by-step help
 
-/**
- * Call Claude AI agent with conversation history
- * This is a placeholder - integrate with your actual AI service
- */
-export const callClaudeAgent = async (
-  messages: Message[],
-  systemPrompt: string = ATO_SYSTEM_PROMPT
-): Promise<string> => {
-  try {
-    console.log('[AI Agent] Calling Claude with', messages.length, 'messages')
-
-    // TODO: Replace with actual Claude API integration
-    // For now, return a mock response
-    const lastUserMessage = messages.filter(m => m.role === 'user').pop()
-    const userText = lastUserMessage?.content.toLowerCase() || ''
-
-    // Mock responses based on keywords
-    if (userText.includes('hola') || userText.includes('buenos días')) {
-      return '¡Hola! Soy Ato, tu asistente de voz. ¿Cómo puedo ayudarte hoy?'
-    }
-
-    if (userText.includes('recordatorio') || userText.includes('recordar')) {
-      return 'Puedo ayudarte a crear recordatorios. ¿Qué te gustaría recordar y cuándo?'
-    }
-
-    if (userText.includes('clara')) {
-      return 'Entiendo que querés hablar sobre Clara. ¿Qué te gustaría saber o hacer por ella?'
-    }
-
-    if (userText.includes('medicamento') || userText.includes('medicina')) {
-      return 'Claro, puedo ayudarte con recordatorios de medicamentos. ¿A qué hora necesitás tomarlo?'
-    }
-
-    if (userText.includes('contacto') || userText.includes('llamar')) {
-      return '¿A quién te gustaría contactar? Puedo ayudarte a llamar a tus contactos guardados.'
-    }
-
-    // Default response
-    return 'Entiendo. ¿Podés decirme un poco más sobre eso para ayudarte mejor?'
-  } catch (error) {
-    console.error('[AI Agent] Error:', error)
-    throw new Error('Error al procesar la solicitud')
-  }
+${
+  elderlyName
+    ? `About ${elderlyName}:
+- ${elderlyName} is the person you are helping to care for
+- Show genuine interest in ${elderlyName}'s wellbeing
+- Remember important details about ${elderlyName} to personalize the experience
+- Use ${elderlyName}'s name naturally in conversation to create a personal connection`
+    : ''
 }
 
-/**
- * Example of how to integrate with Anthropic Claude API
- * Uncomment and configure when ready to use real API
- */
-/*
-import Anthropic from '@anthropic-ai/sdk'
+Your mission: Improve the elderly person's quality of life by providing independence, safety, and companionship, while keeping family members and caregivers connected.`
+}
 
-const anthropic = new Anthropic({
-  apiKey: process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY,
-})
+export const ATO_SYSTEM_PROMPT = generateAtoSystemPrompt()
+
+const CLAUDE_API_KEY = process.env.EXPO_PUBLIC_CLAUDE_API_KEY
+const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages'
 
 export const callClaudeAgent = async (
   messages: Message[],
-  systemPrompt: string = ATO_SYSTEM_PROMPT
+  options?: {
+    systemPrompt?: string
+    elderlyName?: string
+  }
 ): Promise<string> => {
   try {
-    const response = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 1024,
-      system: systemPrompt,
-      messages: messages.map(m => ({
+    console.log('[AI Agent] 🤖 Calling Claude API')
+    console.log('[AI Agent] Messages count:', messages.length)
+    console.log('[AI Agent] Elderly name:', options?.elderlyName || 'not specified')
+    console.log('[AI Agent] API Key present:', !!CLAUDE_API_KEY)
+
+    if (!CLAUDE_API_KEY) {
+      console.error('[AI Agent] ❌ No API key found')
+      throw new Error('Claude API key no configurada')
+    }
+
+    const systemPrompt = options?.systemPrompt || generateAtoSystemPrompt(options?.elderlyName)
+
+    const formattedMessages = messages
+      .filter(m => m.role !== 'system')
+      .map(m => ({
         role: m.role === 'assistant' ? 'assistant' : 'user',
         content: m.content,
-      })),
-    })
+      }))
 
-    const content = response.content[0]
-    if (content.type === 'text') {
-      return content.text
+    console.log('[AI Agent] Formatted messages:', formattedMessages.length)
+
+    const requestBody = {
+      model: 'claude-sonnet-4-5-20250929',
+      max_tokens: 1024,
+      temperature: 0.8,
+      system: systemPrompt,
+      messages: formattedMessages,
     }
 
-    throw new Error('Unexpected response type')
+    console.log('[AI Agent] 📡 Sending request to Claude...')
+
+    const response = await fetch(CLAUDE_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': CLAUDE_API_KEY,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify(requestBody),
+    })
+
+    console.log('[AI Agent] Response status:', response.status)
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('[AI Agent] ❌ API Error:', response.status, errorText)
+      throw new Error(`Claude API error: ${response.status}`)
+    }
+
+    const data = await response.json()
+    console.log('[AI Agent] ✅ Response received')
+
+    if (data.content && data.content[0] && data.content[0].type === 'text') {
+      const responseText = data.content[0].text
+      console.log('[AI Agent] Response text length:', responseText.length)
+      return responseText
+    }
+
+    console.error('[AI Agent] ❌ Unexpected response format:', data)
+    throw new Error('Formato de respuesta inesperado')
   } catch (error) {
-    console.error('[AI Agent] Error:', error)
-    throw new Error('Error al procesar la solicitud')
+    console.error('[AI Agent] ❌ Fatal error:', error)
+    throw new Error('Error al procesar la solicitud con Claude')
   }
 }
-*/

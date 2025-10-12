@@ -1,9 +1,9 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { useRouter, usePathname } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { AtoAssistantIcon } from './atoAssistant/AtoAssistantIcon'
-import { AtoAssistantSheet } from './atoAssistant/AtoAssistantSheet'
+import { useAssistant } from '@/contexts/AssistantContext'
 
 type IconName = keyof typeof Ionicons.glyphMap
 
@@ -31,9 +31,9 @@ const COLORS = {
   active: '#3B82F6',
   inactive: '#9CA3AF',
   background: '#FFFFFF',
-  shadow: '#3B82F6',
+  shadow: '#3CCEF5',
   activeBackground: '#EBF4FF',
-  bigButtonBg: '#3B82F6',
+  bigButtonBg: '#3CCEF5',
 } as const
 
 const TabItem: React.FC<TabItemProps> = ({ label, iconName, onPress, isActive }) => (
@@ -49,7 +49,7 @@ const TabBigItem: React.FC<TabItemProps> = ({ label, iconName, onPress, isActive
   <TouchableOpacity style={styles.bigTabItem} onPress={onPress} activeOpacity={0.7}>
     <View style={styles.iconBigContainer}>
       <View style={styles.assistantIconBackground}>
-        <AtoAssistantIcon width={40} color="white" />
+        <AtoAssistantIcon width={55} color="white" />
       </View>
     </View>
   </TouchableOpacity>
@@ -58,11 +58,12 @@ const TabBigItem: React.FC<TabItemProps> = ({ label, iconName, onPress, isActive
 export const BottomNavigation: React.FC = () => {
   const router = useRouter()
   const pathname = usePathname()
-  const [isAssistantModalVisible, setIsAssistantModalVisible] = useState(false)
+  const { showAssistant } = useAssistant() // Use context instead of local state
 
   const handleTabPress = (route: string) => {
     if (route === '/chat') {
-      setIsAssistantModalVisible(true)
+      console.log('[BOTTOM NAV] Opening assistant')
+      showAssistant() // Open assistant from context
       return
     }
     router.push(route as any)
@@ -74,51 +75,44 @@ export const BottomNavigation: React.FC = () => {
   const secondHalf = regularTabs.slice(2)
 
   return (
-    <>
-      <View style={styles.container}>
-        {bigTab && (
-          <View style={styles.bigButtonWrapper}>
-            <TabBigItem
-              key={bigTab.route}
-              route={bigTab.route}
-              label={bigTab.label}
-              iconName={bigTab.iconName}
-              isActive={pathname === bigTab.route}
-              onPress={() => handleTabPress(bigTab.route)}
+    <View style={styles.container}>
+      {bigTab && (
+        <View style={styles.bigButtonWrapper}>
+          <TabBigItem
+            key={bigTab.route}
+            route={bigTab.route}
+            label={bigTab.label}
+            iconName={bigTab.iconName}
+            isActive={pathname === bigTab.route}
+            onPress={() => handleTabPress(bigTab.route)}
+          />
+        </View>
+      )}
+
+      <View style={styles.navBar}>
+        <View style={styles.tabContainer}>
+          {firstHalf.map(tab => (
+            <TabItem
+              key={tab.route}
+              {...tab}
+              isActive={pathname === tab.route}
+              onPress={() => handleTabPress(tab.route)}
             />
-          </View>
-        )}
+          ))}
 
-        <View style={styles.navBar}>
-          <View style={styles.tabContainer}>
-            {firstHalf.map(tab => (
-              <TabItem
-                key={tab.route}
-                {...tab}
-                isActive={pathname === tab.route}
-                onPress={() => handleTabPress(tab.route)}
-              />
-            ))}
+          <View style={styles.bigButtonSpacer} />
 
-            <View style={styles.bigButtonSpacer} />
-
-            {secondHalf.map(tab => (
-              <TabItem
-                key={tab.route}
-                {...tab}
-                isActive={pathname === tab.route}
-                onPress={() => handleTabPress(tab.route)}
-              />
-            ))}
-          </View>
+          {secondHalf.map(tab => (
+            <TabItem
+              key={tab.route}
+              {...tab}
+              isActive={pathname === tab.route}
+              onPress={() => handleTabPress(tab.route)}
+            />
+          ))}
         </View>
       </View>
-
-      <AtoAssistantSheet
-        visible={isAssistantModalVisible}
-        onClose={() => setIsAssistantModalVisible(false)}
-      />
-    </>
+    </View>
   )
 }
 
@@ -160,16 +154,16 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 60,
     left: '50%',
-    transform: [{ translateX: -32 }],
+    transform: [{ translateX: -37 }],
     zIndex: 20,
   },
   bigButtonSpacer: {
     flex: 1,
   },
   iconBigContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 85,
+    height: 85,
+    borderRadius: 100,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: COLORS.bigButtonBg,
@@ -180,8 +174,8 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   assistantIconBackground: {
-    width: 80,
-    height: 80,
+    width: 90,
+    height: 90,
     justifyContent: 'center',
     alignItems: 'center',
   },

@@ -1,4 +1,3 @@
-// lib/ato-api.ts
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { supabase } from './supabase'
 import { MOCK_MANAGERS, MOCK_USERS, MOCK_REPORTS } from './ato-api.mocks'

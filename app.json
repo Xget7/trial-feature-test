@@ -7,24 +7,28 @@
     "icon": "./assets/images/icon.png",
     "scheme": "atoapp",
     "userInterfaceStyle": "automatic",
-    "linking": {
-      "prefixes": ["atoapp://"],
-      "config": {
-        "screens": {
-          "auth/callback": "auth/callback"
-        }
-      }
-    },
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.anonymous.AtoApp",
+      "infoPlist": {
+        "NSSpeechRecognitionUsageDescription": "Esta aplicación necesita acceso al reconocimiento de voz para entender lo que dices a Ato.",
+        "NSMicrophoneUsageDescription": "Esta aplicación necesita acceso al micrófono para que puedas hablar con Ato, tu asistente de voz."
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ],
+      "package": "com.anonymous.AtoApp"
     },
     "web": {
       "bundler": "metro",
@@ -49,6 +53,12 @@
             "ios": ["es", "en"],
             "android": ["es", "en"]
           }
+        }
+      ],
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Esta aplicación necesita acceso al micrófono para que puedas hablar con Ato, tu asistente de voz."
         }
       ]
     ],

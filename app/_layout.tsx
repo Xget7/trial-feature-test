@@ -9,9 +9,32 @@ import { AuthProvider } from '@/components/AuthProvider'
 import { AuthGuard } from '@/components/AuthGuard'
 import { AtoProvider } from '@/contexts/AtoContext'
 import { I18nProvider } from '@/components/I18nProvider'
+import { AssistantProvider, useAssistant } from '@/contexts/AssistantContext'
+import { AtoAssistantSheet } from '@/components/atoAssistant/AtoAssistantSheet'
+
+function RootLayoutContent() {
+  const colorScheme = useColorScheme()
+  const { isAssistantVisible, hideAssistant } = useAssistant()
+
+  return (
+    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <Stack>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="login" options={{ headerShown: false }} />
+        <Stack.Screen name="dashboard" options={{ headerShown: false }} />
+        <Stack.Screen name="contacts" options={{ headerShown: false }} />
+        <Stack.Screen name="profile" options={{ headerShown: false }} />
+        <Stack.Screen name="settings" options={{ headerShown: false }} />
+        <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
+        <Stack.Screen name="+not-found" />
+      </Stack>
+      <StatusBar style="auto" />
+      <AtoAssistantSheet visible={isAssistantVisible} onClose={hideAssistant} />
+    </ThemeProvider>
+  )
+}
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme()
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   })
@@ -25,19 +48,10 @@ export default function RootLayout() {
       <AtoProvider>
         <AuthProvider>
           <AuthGuard>
-            <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-              <Stack>
-                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                <Stack.Screen name="login" options={{ headerShown: false }} />
-                <Stack.Screen name="dashboard" options={{ headerShown: false }} />
-                <Stack.Screen name="contacts" options={{ headerShown: false }} />
-                <Stack.Screen name="profile" options={{ headerShown: false }} />
-                <Stack.Screen name="settings" options={{ headerShown: false }} />
-                <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
-                <Stack.Screen name="+not-found" />
-              </Stack>
-              <StatusBar style="auto" />
-            </ThemeProvider>
+            {/* Wrap everything in AssistantProvider */}
+            <AssistantProvider>
+              <RootLayoutContent />
+            </AssistantProvider>
           </AuthGuard>
         </AuthProvider>
       </AtoProvider>
