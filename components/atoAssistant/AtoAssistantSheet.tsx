@@ -26,7 +26,7 @@ interface AtoAssistantSheetProps {
 }
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window')
-const AUTO_RESUME_DELAY = 2000
+const AUTO_RESUME_DELAY = 1000 // Reduced from 2000ms to 1000ms
 
 export const AtoAssistantSheet: React.FC<AtoAssistantSheetProps> = ({ visible, onClose }) => {
   const [inputText, setInputText] = useState('')
@@ -55,7 +55,7 @@ export const AtoAssistantSheet: React.FC<AtoAssistantSheetProps> = ({ visible, o
     elevenLabsApiKey: ELEVEN_LABS_API_KEY,
     preferCloudTTS: true,
     useConversationalAI: true,
-    voiceId: 'p7AwDmKvTdoHTBuueGvP',
+    voiceId: 'r3lotmx3BZETVvcKm6R6',
     onError: error => {
       const errorStr = String(error).toLowerCase()
       if (errorStr.includes('no-speech') || errorStr.includes('1110/no speech')) {
@@ -161,6 +161,7 @@ export const AtoAssistantSheet: React.FC<AtoAssistantSheetProps> = ({ visible, o
         if (!hasAutoStartedRef.current) {
           hasAutoStartedRef.current = true
 
+          // OPTIMIZED: Reduced delay from 800ms to 300ms
           setTimeout(() => {
             if (isMountedRef.current && visible) {
               console.log('[SHEET] Auto-starting voice')
@@ -168,7 +169,7 @@ export const AtoAssistantSheet: React.FC<AtoAssistantSheetProps> = ({ visible, o
                 console.error('[SHEET] Auto-start error:', err)
               })
             }
-          }, 800)
+          }, 300)
         }
       } catch (error) {
         console.error('[SHEET] Init error:', error)
