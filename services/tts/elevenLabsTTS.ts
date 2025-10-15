@@ -7,10 +7,7 @@ type ElevenLabsVoice = {
   labels?: Record<string, string>
 }
 
-type ElevenLabsModel =
-  | 'eleven_v3' // v3 - Fastest, lowest latency (RECOMMENDED)
-  | 'eleven_multilingual_v2' // v2 - High quality, 29 languages
-  | 'eleven_monolingual_v1' // v1 - Original English model
+type ElevenLabsModel = 'eleven_v3' | 'eleven_multilingual_v2' | 'eleven_monolingual_v1'
 
 type TTSOptions = {
   voiceId?: string

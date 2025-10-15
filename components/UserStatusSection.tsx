@@ -62,6 +62,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1F2937',
     marginBottom: 12,
+    marginTop: 12,
     textAlign: 'center',
   },
   subtitle: {

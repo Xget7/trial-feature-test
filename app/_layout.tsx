@@ -11,6 +11,7 @@ import { AtoProvider } from '@/contexts/AtoContext'
 import { I18nProvider } from '@/components/I18nProvider'
 import { AssistantProvider, useAssistant } from '@/contexts/AssistantContext'
 import { AtoAssistantSheet } from '@/components/atoAssistant/AtoAssistantSheet'
+import { SelectedUserProvider } from '@/contexts/SelectedUserContext'
 
 function RootLayoutContent() {
   const colorScheme = useColorScheme()
@@ -45,13 +46,19 @@ export default function RootLayout() {
 
   return (
     <I18nProvider>
+      {/* 1️⃣ AtoProvider PRIMERO (no depende de nadie) */}
       <AtoProvider>
+        {/* 2️⃣ AuthProvider usa useAto() */}
         <AuthProvider>
+          {/* 3️⃣ AuthGuard protege rutas */}
           <AuthGuard>
-            {/* Wrap everything in AssistantProvider */}
-            <AssistantProvider>
-              <RootLayoutContent />
-            </AssistantProvider>
+            {/* 4️⃣ SelectedUserProvider usa useAto() */}
+            <SelectedUserProvider>
+              {/* 5️⃣ AssistantProvider para el modal */}
+              <AssistantProvider>
+                <RootLayoutContent />
+              </AssistantProvider>
+            </SelectedUserProvider>
           </AuthGuard>
         </AuthProvider>
       </AtoProvider>

@@ -18,6 +18,7 @@ import * as Linking from 'expo-linking'
 import { Ionicons } from '@expo/vector-icons'
 import { AnimatedAtoIcon } from './AnimatedAtoIcon'
 import { useVoiceAssistant } from '@/hooks/useVoiceAssistant'
+import { useSelectedUser } from '@/contexts/SelectedUserContext'
 const ELEVEN_LABS_API_KEY = process.env.EXPO_PUBLIC_ELEVEN_LABS_API_KEY
 
 interface AtoAssistantSheetProps {
@@ -55,7 +56,7 @@ export const AtoAssistantSheet: React.FC<AtoAssistantSheetProps> = ({ visible, o
     elevenLabsApiKey: ELEVEN_LABS_API_KEY,
     preferCloudTTS: true,
     useConversationalAI: true,
-    voiceId: 'r3lotmx3BZETVvcKm6R6',
+    voiceId: '1WXz8v08ntDcSTeVXMN2',
     onError: error => {
       const errorStr = String(error).toLowerCase()
       if (errorStr.includes('no-speech') || errorStr.includes('1110/no speech')) {
@@ -226,7 +227,7 @@ export const AtoAssistantSheet: React.FC<AtoAssistantSheetProps> = ({ visible, o
 
   const handleSendMessage = async () => {
     if (inputText.trim()) {
-      await sendTextMessage(inputText)
+      await sendTextMessage(inputText, { skipTTS: true }) // ← Agregar esta opción
       setInputText('')
     }
   }
@@ -237,6 +238,8 @@ export const AtoAssistantSheet: React.FC<AtoAssistantSheetProps> = ({ visible, o
       stopListening().catch(err => console.error('[SHEET] Stop error:', err))
     }
   }
+
+  const { selectedUser, isLoading: isLoadingUser } = useSelectedUser()
 
   const handleInputBlur = () => {
     if (!inputText.trim()) {
@@ -282,6 +285,17 @@ export const AtoAssistantSheet: React.FC<AtoAssistantSheetProps> = ({ visible, o
     return 'breathe'
   }
 
+  const getGreeting = () => {
+    if (isLoadingUser) {
+      return 'Soy Ato, un momento...'
+    }
+    if (!selectedUser) {
+      return 'Soy Ato, ¿en qué puedo ayudarte?'
+    }
+    const name = selectedUser.nickname || selectedUser.name
+    return `Soy Ato, ¿hablamos de ${name}?`
+  }
+
   return (
     <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
       <KeyboardAvoidingView
@@ -314,7 +328,19 @@ export const AtoAssistantSheet: React.FC<AtoAssistantSheetProps> = ({ visible, o
             {/* Modo Voice - UI Principal */}
             {!isTextMode && (
               <>
-                <Text style={styles.greeting}>Soy Ato, ¿hablamos de Clara?</Text>
+                <Text style={styles.greeting}>{getGreeting()}</Text>
+
+                {!hasPermissions && !isRequestingPermissions && (
+                  <View style={styles.permissionWarning}>
+                    <Ionicons name="warning" size={20} color="#F59E0B" />
+                    <Text style={styles.permissionText}>
+                      Necesitamos permiso para usar el micrófono
+                    </Text>
+                    <TouchableOpacity style={styles.permissionButton} onPress={requestPermissions}>
+                      <Text style={styles.permissionButtonText}>Dar permiso</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
 
                 <View style={styles.voiceSection}>
                   <View style={styles.avatarContainer}>
@@ -348,18 +374,6 @@ export const AtoAssistantSheet: React.FC<AtoAssistantSheetProps> = ({ visible, o
                     </View>
                   )}
                 </View>
-
-                {!hasPermissions && !isRequestingPermissions && (
-                  <View style={styles.permissionWarning}>
-                    <Ionicons name="warning" size={20} color="#F59E0B" />
-                    <Text style={styles.permissionText}>
-                      Necesitamos permiso para usar el micrófono
-                    </Text>
-                    <TouchableOpacity style={styles.permissionButton} onPress={requestPermissions}>
-                      <Text style={styles.permissionButtonText}>Dar permiso</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
               </>
             )}
 
@@ -561,13 +575,18 @@ const styles = StyleSheet.create({
   sendButton: {
     position: 'absolute',
     right: 28,
-    bottom: 20,
+    top: 19,
     width: 36,
     height: 36,
     borderRadius: 18,
     backgroundColor: '#3CCEF5',
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#3CCEF5',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
   },
   permissionWarning: {
     width: '100%',
@@ -577,6 +596,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     marginTop: 20,
+    marginBottom: 20,
   },
   permissionText: {
     fontSize: 14,

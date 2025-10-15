@@ -79,6 +79,35 @@ export interface Contact {
   updated_at: string
 }
 
+// NUEVO: Interface para usuario con relación
+export interface UserWithRelation extends AtoUser {
+  relationship?: string | null
+}
+
+// NUEVO: Interface para selección de manager
+export interface ManagerSelectedUser {
+  id: string
+  manager_id: string
+  user_id: string
+  created_at: string
+  updated_at: string
+}
+
+// NUEVO: Interface para Reminders
+export interface Reminder {
+  id: string
+  user_id: string
+  manager_id: string
+  task: string
+  scheduled_for: string
+  rrule: string | null
+  status: 'PENDING' | 'SENT' | 'COMPLETED' | 'FAILED'
+  last_sent_at: string | null
+  attempts: number
+  created_at?: string
+  updated_at?: string
+}
+
 class AtoApiService {
   private async getToken(): Promise<string | null> {
     try {
@@ -123,7 +152,6 @@ class AtoApiService {
       return manager
     }
 
-    // Usar Supabase directamente
     console.log('🔐 Real mode: Getting manager from Supabase', managerId)
     const { data, error } = await supabase.from('managers').select('*').eq('id', managerId).single()
 
@@ -152,7 +180,6 @@ class AtoApiService {
       return user
     }
 
-    // Usar Supabase directamente
     console.log('🔐 Real mode: Getting user from Supabase', userId)
     const { data, error } = await supabase.from('users').select('*').eq('id', userId).single()
 
@@ -182,7 +209,6 @@ class AtoApiService {
       return user ? [user] : []
     }
 
-    // Usar Supabase directamente con JOIN
     console.log('🔐 Real mode: Getting users from Supabase for manager', managerId)
     const { data, error } = await supabase
       .from('manager_users')
@@ -204,10 +230,235 @@ class AtoApiService {
       return []
     }
 
-    // Extraer los usuarios del resultado del JOIN
     const users = data.map((item: any) => item.users).filter(Boolean)
-
     return users
+  }
+
+  // Manager Selection API
+  async getSelectedUser(managerId: string): Promise<UserWithRelation | null> {
+    if (USE_MOCK_DATA) {
+      console.log('🎭 Mock mode: Getting selected user for manager', managerId)
+      await new Promise(resolve => setTimeout(resolve, 400))
+
+      const manager = MOCK_MANAGERS[managerId]
+      if (!manager || !manager.user_id) {
+        return null
+      }
+
+      const user = MOCK_USERS[manager.user_id]
+      if (!user) {
+        return null
+      }
+
+      return {
+        ...user,
+        relationship: manager.relationship || undefined,
+      }
+    }
+
+    console.log('🔐 Real mode: Getting selected user from Supabase', managerId)
+    try {
+      const { data: selection, error: selectionError } = await supabase
+        .from('manager_selected_users')
+        .select('user_id')
+        .eq('manager_id', managerId)
+        .maybeSingle()
+
+      if (selectionError) {
+        console.error('Error getting selection:', selectionError)
+        return null
+      }
+
+      if (!selection) {
+        console.log('No user selected for manager', managerId)
+        return null
+      }
+
+      const { data: relationData, error: relationError } = await supabase
+        .from('manager_users')
+        .select(
+          `
+          relationship,
+          users (*)
+        `
+        )
+        .eq('manager_id', managerId)
+        .eq('user_id', selection.user_id)
+        .single()
+
+      if (relationError || !relationData) {
+        console.error('Error getting user with relation:', relationError)
+        return null
+      }
+
+      const user = relationData.users as any
+      return {
+        ...user,
+        relationship: relationData.relationship,
+      }
+    } catch (error) {
+      console.error('[AtoAPI] Error getting selected user:', error)
+      return null
+    }
+  }
+
+  async setSelectedUser(managerId: string, userId: string): Promise<boolean> {
+    if (USE_MOCK_DATA) {
+      console.log('🎭 Mock mode: Setting selected user', { managerId, userId })
+      await new Promise(resolve => setTimeout(resolve, 400))
+      return true
+    }
+
+    console.log('🔐 Real mode: Setting selected user in Supabase', { managerId, userId })
+    try {
+      const { data: relation, error: relationError } = await supabase
+        .from('manager_users')
+        .select('user_id')
+        .eq('manager_id', managerId)
+        .eq('user_id', userId)
+        .single()
+
+      if (relationError || !relation) {
+        console.error('User does not belong to manager or error:', relationError)
+        return false
+      }
+
+      const { error } = await supabase.from('manager_selected_users').upsert(
+        {
+          manager_id: managerId,
+          user_id: userId,
+          updated_at: new Date().toISOString(),
+        },
+        {
+          onConflict: 'manager_id',
+        }
+      )
+
+      if (error) {
+        console.error('Error setting selected user:', error)
+        return false
+      }
+
+      console.log('✅ Selected user updated successfully')
+      return true
+    } catch (error) {
+      console.error('[AtoAPI] Error setting selected user:', error)
+      return false
+    }
+  }
+
+  async getManagedUsersWithSelection(
+    managerId: string
+  ): Promise<(UserWithRelation & { isSelected: boolean })[]> {
+    if (USE_MOCK_DATA) {
+      console.log('🎭 Mock mode: Getting managed users with selection', managerId)
+      await new Promise(resolve => setTimeout(resolve, 500))
+
+      const manager = MOCK_MANAGERS[managerId]
+      if (!manager || !manager.user_id) {
+        return []
+      }
+
+      const user = MOCK_USERS[manager.user_id]
+      if (!user) {
+        return []
+      }
+
+      return [
+        {
+          ...user,
+          relationship: manager.relationship,
+          isSelected: true,
+        },
+      ]
+    }
+
+    console.log('🔐 Real mode: Getting managed users with selection from Supabase', managerId)
+    try {
+      const { data: selection } = await supabase
+        .from('manager_selected_users')
+        .select('user_id')
+        .eq('manager_id', managerId)
+        .maybeSingle()
+
+      const selectedUserId = selection?.user_id
+
+      const { data, error } = await supabase
+        .from('manager_users')
+        .select(
+          `
+          relationship,
+          users (*)
+        `
+        )
+        .eq('manager_id', managerId)
+
+      if (error || !data) {
+        console.error('Error getting managed users:', error)
+        return []
+      }
+
+      return data.map(item => {
+        const user = item.users as any
+        return {
+          ...user,
+          relationship: item.relationship,
+          isSelected: user.id === selectedUserId,
+        }
+      })
+    } catch (error) {
+      console.error('[AtoAPI] Error getting managed users:', error)
+      return []
+    }
+  }
+
+  // NUEVO: Reminders API
+  async getRemindersForUser(userId: string): Promise<Reminder[]> {
+    if (USE_MOCK_DATA) {
+      console.log('🎭 Mock mode: Getting reminders for user', userId)
+      await new Promise(resolve => setTimeout(resolve, 600))
+      // Retornar array vacío por ahora en modo mock
+      return []
+    }
+
+    console.log('🔐 Real mode: Getting reminders from Supabase for user', userId)
+    const { data, error } = await supabase
+      .from('reminders')
+      .select('*')
+      .eq('user_id', userId)
+      .order('scheduled_for', { ascending: true })
+
+    if (error) {
+      console.error('Supabase error getting reminders:', error)
+      return []
+    }
+
+    return data || []
+  }
+
+  async createReminder(
+    reminder: Omit<Reminder, 'id' | 'created_at' | 'updated_at'>
+  ): Promise<Reminder | null> {
+    if (USE_MOCK_DATA) {
+      console.log('🎭 Mock mode: Creating reminder')
+      await new Promise(resolve => setTimeout(resolve, 400))
+      return {
+        ...reminder,
+        id: `mock-reminder-${Date.now()}`,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }
+    }
+
+    console.log('🔐 Real mode: Creating reminder in Supabase')
+    const { data, error } = await supabase.from('reminders').insert([reminder]).select().single()
+
+    if (error) {
+      console.error('Supabase error creating reminder:', error)
+      return null
+    }
+
+    return data
   }
 
   // Reports API
@@ -234,7 +485,6 @@ class AtoApiService {
       return report
     }
 
-    // Por ahora devolver reporte vacío - implementar cuando tengas la tabla de reportes
     console.log('🔐 Real mode: Getting report (mock data for now)')
     return {
       user_id: userId,
@@ -261,7 +511,6 @@ class AtoApiService {
       return userContacts
     }
 
-    // Usar Supabase directamente
     console.log('🔐 Real mode: Getting contacts from Supabase for user', userId)
     const { data, error } = await supabase.from('contacts').select('*').eq('user_id', userId)
 

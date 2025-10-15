@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
-import AsyncStorage from '@react-native-async-storage/async-storage'
 import { atoApi, AtoManager, AtoUser, UserReport, MOCK_IDS } from '../lib/ato-api'
 import { t } from '../lib/i18n'
 
@@ -42,6 +41,7 @@ export const useAto = () => {
   }
   return context
 }
+export const useAuth = useAto
 
 export const AtoProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentManager, setCurrentManager] = useState<AtoManager | null>(null)
@@ -191,3 +191,4 @@ export const AtoProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   return <AtoContext.Provider value={value}>{children}</AtoContext.Provider>
 }
+export const AuthProvider = AtoProvider

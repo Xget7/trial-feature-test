@@ -27,7 +27,6 @@ interface VoiceAssistantState {
   ttsProvider?: 'elevenlabs' | 'native'
 }
 
-// OPTIMIZED: Reduced from 3000ms to 1500ms for faster response
 const DEFAULT_SILENCE_TIMEOUT = 1500
 
 export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
@@ -413,9 +412,9 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
   }, [])
 
   const sendTextMessage = useCallback(
-    async (text: string) => {
+    async (text: string, options?: { skipTTS?: boolean }) => {
       if (text.trim()) {
-        await handleSpeechResult(text.trim())
+        await handleSpeechResult(text.trim(), options?.skipTTS ?? false)
       }
     },
     [handleSpeechResult]

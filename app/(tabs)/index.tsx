@@ -3,11 +3,23 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from
 import { Ionicons } from '@expo/vector-icons'
 import { useAssistant } from '@/contexts/AssistantContext'
 import { LinearGradient } from 'expo-linear-gradient'
+import { useSelectedUser } from '@/contexts/SelectedUserContext'
 
 const { width } = Dimensions.get('window')
 
 export default function HomeScreen() {
   const { showAssistant } = useAssistant()
+  const { selectedUser, isLoading } = useSelectedUser()
+
+  const getDisplayName = () => {
+    if (!selectedUser) return 'tu ser querido'
+    return selectedUser.nickname || selectedUser.name
+  }
+
+  const getRelationshipText = () => {
+    if (!selectedUser?.relationship) return ''
+    return ` (tu ${selectedUser.relationship})`
+  }
 
   return (
     <View style={styles.container}>
@@ -33,7 +45,11 @@ export default function HomeScreen() {
               <Ionicons name="mic" size={48} color="white" />
             </View>
             <Text style={styles.cardTitle}>Hablar con Ato</Text>
-            <Text style={styles.cardSubtitle}>Pregúntame lo que quieras sobre Clara</Text>
+            <Text style={styles.cardSubtitle}>
+              {isLoading
+                ? 'Cargando...'
+                : `Pregúntame lo que quieras sobre ${getDisplayName()}${getRelationshipText()}`}
+            </Text>
           </LinearGradient>
         </TouchableOpacity>
 
