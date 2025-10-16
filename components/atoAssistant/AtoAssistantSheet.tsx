@@ -19,15 +19,15 @@ import { Ionicons } from '@expo/vector-icons'
 import { AnimatedAtoIcon } from './AnimatedAtoIcon'
 import { useVoiceAssistant } from '@/hooks/useVoiceAssistant'
 import { useSelectedUser } from '@/contexts/SelectedUserContext'
+
 const ELEVEN_LABS_API_KEY = process.env.EXPO_PUBLIC_ELEVEN_LABS_API_KEY
+const { height: SCREEN_HEIGHT } = Dimensions.get('window')
+const AUTO_RESUME_DELAY = 1000
 
 interface AtoAssistantSheetProps {
   visible: boolean
   onClose: () => void
 }
-
-const { height: SCREEN_HEIGHT } = Dimensions.get('window')
-const AUTO_RESUME_DELAY = 1000 // Reduced from 2000ms to 1000ms
 
 export const AtoAssistantSheet: React.FC<AtoAssistantSheetProps> = ({ visible, onClose }) => {
   const [inputText, setInputText] = useState('')
@@ -49,7 +49,6 @@ export const AtoAssistantSheet: React.FC<AtoAssistantSheetProps> = ({ visible, o
     conversationHistory,
     startListening,
     stopListening,
-    stopSpeaking,
     sendTextMessage,
   } = useVoiceAssistant({
     language: 'es-ES',
@@ -65,6 +64,8 @@ export const AtoAssistantSheet: React.FC<AtoAssistantSheetProps> = ({ visible, o
       console.error('[SHEET] Voice error:', error)
     },
   })
+
+  const { selectedUser, isLoading: isLoadingUser } = useSelectedUser()
 
   const checkPermissions = async (): Promise<boolean> => {
     try {
@@ -85,9 +86,7 @@ export const AtoAssistantSheet: React.FC<AtoAssistantSheetProps> = ({ visible, o
       console.log('[SHEET] Requesting permissions...')
 
       const alreadyGranted = await checkPermissions()
-      if (alreadyGranted) {
-        return true
-      }
+      if (alreadyGranted) return true
 
       const { status, canAskAgain } = await Audio.requestPermissionsAsync()
 
@@ -154,15 +153,11 @@ export const AtoAssistantSheet: React.FC<AtoAssistantSheetProps> = ({ visible, o
 
       try {
         const granted = await checkPermissions()
-
-        if (!granted) {
-          return
-        }
+        if (!granted) return
 
         if (!hasAutoStartedRef.current) {
           hasAutoStartedRef.current = true
 
-          // OPTIMIZED: Reduced delay from 800ms to 300ms
           setTimeout(() => {
             if (isMountedRef.current && visible) {
               console.log('[SHEET] Auto-starting voice')
@@ -178,11 +173,11 @@ export const AtoAssistantSheet: React.FC<AtoAssistantSheetProps> = ({ visible, o
     }
 
     initVoice()
-  }, [visible])
+  }, [visible, isListening, stopListening, startListening])
 
   useEffect(() => {
     if (previousSpeakingRef.current && !isSpeaking && !isTextMode) {
-      console.log('[SHEET] Ato finished speaking, resuming in 2s...')
+      console.log('[SHEET] Ato finished speaking, scheduling auto-resume...')
 
       if (autoResumeTimerRef.current) {
         clearTimeout(autoResumeTimerRef.current)
@@ -225,21 +220,34 @@ export const AtoAssistantSheet: React.FC<AtoAssistantSheetProps> = ({ visible, o
     }
   }, [])
 
+  const handleSwitchToVoiceMode = async () => {
+    console.log('[SHEET] Switching to voice mode')
+    setIsTextMode(false)
+    setInputText('')
+
+    setTimeout(async () => {
+      if (hasPermissions) {
+        await startListening()
+      }
+    }, 300)
+  }
+
   const handleSendMessage = async () => {
     if (inputText.trim()) {
-      await sendTextMessage(inputText, { skipTTS: true }) // ← Agregar esta opción
+      await sendTextMessage(inputText, { skipTTS: true })
       setInputText('')
     }
   }
 
   const handleInputFocus = () => {
-    setIsTextMode(true)
+    console.log('[SHEET] Switching to text mode')
+
     if (isListening) {
       stopListening().catch(err => console.error('[SHEET] Stop error:', err))
     }
-  }
 
-  const { selectedUser, isLoading: isLoadingUser } = useSelectedUser()
+    setIsTextMode(true)
+  }
 
   const handleInputBlur = () => {
     if (!inputText.trim()) {
@@ -249,24 +257,23 @@ export const AtoAssistantSheet: React.FC<AtoAssistantSheetProps> = ({ visible, o
 
   const getStatusInfo = () => {
     if (isSpeaking) {
-      return {
-        text: 'Hablando...',
-        icon: 'volume-high' as const,
-      }
+      return { text: 'Hablando...', icon: 'volume-high' as const }
     }
     if (isProcessing) {
-      return {
-        text: 'Procesando...',
-        icon: 'sync' as const,
-      }
+      return { text: 'Procesando...', icon: 'sync' as const }
     }
     if (isListening) {
-      return {
-        text: 'Escuchando...',
-        icon: 'mic' as const,
-      }
+      return { text: 'Escuchando...', icon: 'mic' as const }
     }
     return null
+  }
+
+  const getGreeting = () => {
+    if (isLoadingUser) return 'Soy Ato, un momento...'
+    if (!selectedUser) return 'Soy Ato, ¿en qué puedo ayudarte?'
+
+    const name = selectedUser.nickname || selectedUser.name
+    return `Soy Ato, ¿hablamos de ${name}?`
   }
 
   const statusInfo = getStatusInfo()
@@ -283,17 +290,6 @@ export const AtoAssistantSheet: React.FC<AtoAssistantSheetProps> = ({ visible, o
     if (isSpeaking) return 'pulse'
     if (isListening) return 'ripple'
     return 'breathe'
-  }
-
-  const getGreeting = () => {
-    if (isLoadingUser) {
-      return 'Soy Ato, un momento...'
-    }
-    if (!selectedUser) {
-      return 'Soy Ato, ¿en qué puedo ayudarte?'
-    }
-    const name = selectedUser.nickname || selectedUser.name
-    return `Soy Ato, ¿hablamos de ${name}?`
   }
 
   return (
@@ -319,13 +315,14 @@ export const AtoAssistantSheet: React.FC<AtoAssistantSheetProps> = ({ visible, o
             <Ionicons name="close" size={24} color="#6B7280" />
           </TouchableOpacity>
 
+          {isTextMode && <Text style={styles.modalTitle}>{getGreeting()}</Text>}
+
           <ScrollView
             style={styles.scrollContent}
             contentContainerStyle={styles.content}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-            {/* Modo Voice - UI Principal */}
             {!isTextMode && (
               <>
                 <Text style={styles.greeting}>{getGreeting()}</Text>
@@ -377,10 +374,8 @@ export const AtoAssistantSheet: React.FC<AtoAssistantSheetProps> = ({ visible, o
               </>
             )}
 
-            {/* Modo Texto - Chat History */}
             {isTextMode && conversationHistory.length > 0 && (
               <View style={styles.chatContainer}>
-                <Text style={styles.chatTitle}>Conversación con Ato</Text>
                 {conversationHistory.map((msg, idx) => (
                   <View
                     key={`${idx}-${msg.role}`}
@@ -397,10 +392,19 @@ export const AtoAssistantSheet: React.FC<AtoAssistantSheetProps> = ({ visible, o
             )}
           </ScrollView>
 
-          {/* Input siempre visible */}
           <View style={styles.inputContainer}>
+            {isTextMode && (
+              <TouchableOpacity
+                style={styles.micButton}
+                onPress={handleSwitchToVoiceMode}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="mic" size={24} color="#3CCEF5" />
+              </TouchableOpacity>
+            )}
+
             <TextInput
-              style={styles.textInput}
+              style={[styles.textInput, isTextMode && styles.textInputWithMic]}
               value={inputText}
               onChangeText={setInputText}
               onFocus={handleInputFocus}
@@ -411,6 +415,7 @@ export const AtoAssistantSheet: React.FC<AtoAssistantSheetProps> = ({ visible, o
               maxLength={500}
               editable={!isProcessing && !isSpeaking}
             />
+
             {inputText.trim() && (
               <TouchableOpacity
                 style={styles.sendButton}
@@ -449,7 +454,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   sheetContainerExpanded: {
-    height: SCREEN_HEIGHT * 0.95,
+    height: SCREEN_HEIGHT * 0.8,
   },
   handleBar: {
     width: 50,
@@ -471,6 +476,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#1F2937',
+    textAlign: 'center',
+    marginTop: 46,
+    marginBottom: 8,
   },
   scrollContent: {
     flex: 1,
@@ -558,19 +571,21 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
+    position: 'relative',
   },
   textInput: {
     backgroundColor: '#F9FAFB',
     borderRadius: 16,
-    paddingHorizontal: 20,
     paddingVertical: 16,
-    paddingRight: 60,
     fontSize: 15,
     color: '#1F2937',
     minHeight: 50,
     maxHeight: 120,
     borderWidth: 1,
     borderColor: '#E5E7EB',
+  },
+  textInputWithMic: {
+    paddingLeft: 52,
   },
   sendButton: {
     position: 'absolute',
@@ -587,6 +602,20 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 3,
+  },
+  micButton: {
+    position: 'absolute',
+    left: 28,
+    top: 19,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#EFF6FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+    borderWidth: 1,
+    borderColor: '#3CCEF5',
   },
   permissionWarning: {
     width: '100%',
@@ -618,13 +647,6 @@ const styles = StyleSheet.create({
   chatContainer: {
     width: '100%',
     flex: 1,
-  },
-  chatTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 16,
-    textAlign: 'center',
   },
   chatBubble: {
     padding: 12,

@@ -8,7 +8,6 @@ import Animated, {
   withTiming,
   withSequence,
   Easing,
-  interpolate,
   cancelAnimation,
 } from 'react-native-reanimated'
 
@@ -17,15 +16,19 @@ interface AnimatedAtoIconProps {
   height?: number
   color?: string
   style?: ViewStyle
-  isActive?: boolean // When AI is speaking
+  isActive?: boolean
   variant?: 'pulse' | 'ripple' | 'breathe' | 'glow' | 'morph'
 }
 
 const AnimatedView = Animated.createAnimatedComponent(View)
 
+const VIEWBOX_WIDTH = 270
+const VIEWBOX_HEIGHT = 268
+const ASPECT_RATIO = VIEWBOX_WIDTH / VIEWBOX_HEIGHT
+
 export const AnimatedAtoIcon: React.FC<AnimatedAtoIconProps> = ({
   width = 50,
-  height = 50,
+  height,
   color = '#3B82F6',
   style,
   isActive = false,
@@ -37,10 +40,8 @@ export const AnimatedAtoIcon: React.FC<AnimatedAtoIconProps> = ({
 
   useEffect(() => {
     if (isActive) {
-      // Start animations based on variant
       switch (variant) {
         case 'pulse':
-          // Fast pulsing when speaking
           scale.value = withRepeat(
             withSequence(
               withTiming(1.15, { duration: 400, easing: Easing.inOut(Easing.ease) }),
@@ -52,7 +53,6 @@ export const AnimatedAtoIcon: React.FC<AnimatedAtoIconProps> = ({
           break
 
         case 'breathe':
-          // Slow breathing effect
           scale.value = withRepeat(
             withSequence(
               withTiming(1.1, { duration: 1200, easing: Easing.inOut(Easing.ease) }),
@@ -64,7 +64,6 @@ export const AnimatedAtoIcon: React.FC<AnimatedAtoIconProps> = ({
           break
 
         case 'glow':
-          // Opacity pulsing (glow effect)
           opacity.value = withRepeat(
             withSequence(
               withTiming(0.6, { duration: 600, easing: Easing.inOut(Easing.ease) }),
@@ -76,7 +75,6 @@ export const AnimatedAtoIcon: React.FC<AnimatedAtoIconProps> = ({
           break
 
         case 'morph':
-          // Scale with rotation
           scale.value = withRepeat(
             withSequence(
               withTiming(1.12, { duration: 500, easing: Easing.inOut(Easing.ease) }),
@@ -93,7 +91,6 @@ export const AnimatedAtoIcon: React.FC<AnimatedAtoIconProps> = ({
           break
 
         case 'ripple':
-          // Multiple pulse waves
           scale.value = withRepeat(
             withSequence(
               withTiming(1.2, { duration: 600, easing: Easing.out(Easing.ease) }),
@@ -113,7 +110,6 @@ export const AnimatedAtoIcon: React.FC<AnimatedAtoIconProps> = ({
           break
       }
     } else {
-      // Reset to idle state
       cancelAnimation(scale)
       cancelAnimation(opacity)
       cancelAnimation(rotation)
@@ -129,12 +125,20 @@ export const AnimatedAtoIcon: React.FC<AnimatedAtoIconProps> = ({
     opacity: opacity.value,
   }))
 
-  const aspectRatio = 270 / 268
-  const calculatedHeight = width / aspectRatio
+  const safeWidth = typeof width === 'number' && !isNaN(width) && width > 0 ? width : 50
+  const calculatedHeight = height
+    ? typeof height === 'number' && !isNaN(height) && height > 0
+      ? height
+      : safeWidth / ASPECT_RATIO
+    : safeWidth / ASPECT_RATIO
 
   return (
     <AnimatedView style={[styles.container, animatedStyle, style]}>
-      <Svg width={width} height={calculatedHeight} viewBox="0 0 270 268">
+      <Svg
+        width={safeWidth}
+        height={calculatedHeight}
+        viewBox={`0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`}
+      >
         <Defs>
           <RadialGradient id="iconGradient" cx="50%" cy="50%" r="50%">
             <Stop offset="0%" stopColor={color} stopOpacity="1" />

@@ -10,7 +10,6 @@ interface UseVoiceAssistantOptions {
   onError?: (error: Error) => void
   silenceTimeout?: number
   elderlyName?: string
-  // ElevenLabs options
   elevenLabsApiKey?: string
   preferCloudTTS?: boolean
   useConversationalAI?: boolean
@@ -59,6 +58,7 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
   const conversationHistoryRef = useRef<Message[]>([])
   const handlersSetupRef = useRef(false)
   const ttsInitializedRef = useRef(false)
+  const isTextModeRef = useRef(false) // ← NUEVO: Track si estamos en modo texto
 
   // Initialize TTS service once
   useEffect(() => {
@@ -87,14 +87,18 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
     conversationHistoryRef.current = state.conversationHistory
   }, [state.conversationHistory])
 
-  // OPTIMIZED: Process speech immediately with aggressive timeout
+  // UPDATED: Process speech with optional TTS skip
   const handleSpeechResult = useCallback(
-    async (spokenText: string) => {
+    async (spokenText: string, skipTTS: boolean = false) => {
       if (isProcessingRef.current || spokenText === lastProcessedTranscriptRef.current) {
         return
       }
 
-      console.log('=== 🎯 PROCESSING:', spokenText)
+      console.log(
+        '=== 🎯 PROCESSING:',
+        spokenText,
+        skipTTS ? '(TEXT MODE - NO TTS)' : '(VOICE MODE)'
+      )
 
       isProcessingRef.current = true
       lastProcessedTranscriptRef.current = spokenText
@@ -109,7 +113,7 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
         ...prev,
         transcript: spokenText,
         isProcessing: true,
-        isListening: false,
+        isListening: false, // ← Asegurarse de que no está listening durante el procesamiento
       }))
 
       try {
@@ -137,21 +141,27 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
           isProcessing: false,
         }))
 
-        const speakOptions = useConversationalAI
-          ? {
-              conversational: true,
-              voiceId,
-              optimizeStreamingLatency: 4,
-            }
-          : {
-              model: 'eleven_turbo_v2_5' as const,
-              voiceId,
-              optimizeStreamingLatency: 3,
-              language,
-            }
+        // ✅ NUEVO: Solo reproducir audio si NO es modo texto
+        if (!skipTTS) {
+          console.log('[TTS] 🔊 Playing audio response')
+          const speakOptions = useConversationalAI
+            ? {
+                conversational: true,
+                voiceId,
+                optimizeStreamingLatency: 4,
+              }
+            : {
+                model: 'eleven_turbo_v2_5' as const,
+                voiceId,
+                optimizeStreamingLatency: 3,
+                language,
+              }
 
-        await speak(agentResponse, speakOptions)
-        console.log('[TTS] ✅ Finished speaking')
+          await speak(agentResponse, speakOptions)
+          console.log('[TTS] ✅ Finished speaking')
+        } else {
+          console.log('[TTS] 🔇 Skipping audio (text mode)')
+        }
       } catch (error) {
         console.error('=== ❌ ERROR ===', error)
         setState(prev => ({ ...prev, isProcessing: false }))
@@ -162,18 +172,22 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
 
         setState(prev => ({ ...prev, response: errorMessage }))
 
-        try {
-          await speak(errorMessage, {
-            language,
-            forceProvider: 'native',
-          })
-        } catch (ttsError) {
-          console.error('[TTS ERROR]:', ttsError)
+        // Solo reproducir error si no es texto mode
+        if (!skipTTS) {
+          try {
+            await speak(errorMessage, {
+              language,
+              forceProvider: 'native',
+            })
+          } catch (ttsError) {
+            console.error('[TTS ERROR]:', ttsError)
+          }
         }
 
         if (onError) onError(error as Error)
       } finally {
         isProcessingRef.current = false
+        isTextModeRef.current = false // Reset text mode flag
       }
     },
     [systemPrompt, onError, language, useConversationalAI, voiceId, elderlyName]
@@ -189,7 +203,7 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
     voiceService.setEventHandlers({
       onStart: () => {
         console.log('[VOICE] ✅ Started listening')
-        if (isMounted.current) {
+        if (isMounted.current && !isTextModeRef.current) {
           setState(prev => ({ ...prev, isListening: true, transcript: '' }))
           lastTranscriptRef.current = ''
           lastProcessedTranscriptRef.current = ''
@@ -210,21 +224,22 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
             silenceTimerRef.current = null
           }
 
-          // OPTIMIZED: Only process if we have new content
+          // OPTIMIZED: Only process if we have new content and NOT in text mode
           const trimmedTranscript = lastTranscriptRef.current.trim()
           if (
             trimmedTranscript &&
             trimmedTranscript !== lastProcessedTranscriptRef.current &&
-            !isProcessingRef.current
+            !isProcessingRef.current &&
+            !isTextModeRef.current // ← No procesar si estamos en modo texto
           ) {
             console.log('[VOICE] 🚀 Processing final transcript')
-            handleSpeechResult(trimmedTranscript)
+            handleSpeechResult(trimmedTranscript, false) // Voice mode = TTS enabled
           }
         }
       },
 
       onResults: results => {
-        if (results && results[0] && isMounted.current) {
+        if (results && results[0] && isMounted.current && !isTextModeRef.current) {
           const newResult = results[0].trim()
 
           // Ignore very short results (less than 3 characters)
@@ -258,7 +273,7 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
                   console.log('[VOICE] 🛑 Auto-stopping listening')
                   await voiceService.stopListening()
                   console.log('[VOICE] 🚀 Processing on silence timeout')
-                  handleSpeechResult(currentTranscript)
+                  handleSpeechResult(currentTranscript, false) // Voice mode
                 } catch (error) {
                   console.error('[VOICE] ❌ Silence timeout error:', error)
                 }
@@ -361,6 +376,7 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
       if (state.isSpeaking) await stop()
 
       isProcessingRef.current = false
+      isTextModeRef.current = false
       lastProcessedTranscriptRef.current = ''
       lastTranscriptRef.current = ''
       if (silenceTimerRef.current) {
@@ -411,13 +427,21 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
     console.log('[VOICE] 🗑️ Conversation cleared')
   }, [])
 
+  // ✅ UPDATED: sendTextMessage con skipTTS
   const sendTextMessage = useCallback(
     async (text: string, options?: { skipTTS?: boolean }) => {
       if (text.trim()) {
+        isTextModeRef.current = true
+
+        if (state.isListening) {
+          console.log('[VOICE] 🛑 Stopping listening for text mode')
+          await stopListening()
+        }
+
         await handleSpeechResult(text.trim(), options?.skipTTS ?? false)
       }
     },
-    [handleSpeechResult]
+    [handleSpeechResult, state.isListening, stopListening]
   )
 
   return {
