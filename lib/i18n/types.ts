@@ -145,6 +145,28 @@ export interface Translations {
     noRecentUpdates: string
     noConversationToday: string
   }
+  tools: {
+    error: string
+    getCurrentTime: {
+      currentTime: string
+      date: string
+    }
+    endConversation: {
+      ended: string
+    }
+    getUserReport: {
+      title: string
+      totalContacts: string
+      activeReminders: string
+      completedReminders: string
+      recentActivity: string
+      upcomingReminders: string
+    }
+    createReminder: {
+      success: string
+      for: string
+    }
+  }
 }
 
 export type TranslationKey = keyof Translations

@@ -10,10 +10,12 @@ interface UseVoiceAssistantOptions {
   onError?: (error: Error) => void
   silenceTimeout?: number
   elderlyName?: string
+  userId?: string
   elevenLabsApiKey?: string
   preferCloudTTS?: boolean
   useConversationalAI?: boolean
   voiceId?: string
+  onConversationEnd?: () => void
 }
 
 interface VoiceAssistantState {
@@ -37,7 +39,9 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
     preferCloudTTS = true,
     useConversationalAI = true,
     elderlyName = 'the elderly person',
+    userId, // ✅ AGREGAR
     voiceId = 'r3lotmx3BZETVvcKm6R6',
+    onConversationEnd, // ✅ AGREGAR
   } = options
 
   const [state, setState] = useState<VoiceAssistantState>({
@@ -124,11 +128,18 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
         ]
 
         console.log('[AI] 🤖 Calling Claude...')
-        const agentResponse = await callClaudeAgent(newHistory, {
+        const agentResult = await callClaudeAgent(newHistory, {
           systemPrompt,
           elderlyName: elderlyName,
+          userId: userId, // ✅ AGREGAR
         })
+        const agentResponse = agentResult.response // ✅ CAMBIAR
         console.log('[AI] ✅ Response:', agentResponse.substring(0, 50) + '...')
+
+        // ✅ AGREGAR: Log tools used
+        if (agentResult.toolsUsed) {
+          console.log('[AI] 🔧 Tools used:', agentResult.toolsUsed.join(', '))
+        }
 
         const updatedHistory: Message[] = [
           ...newHistory,
@@ -160,8 +171,25 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
 
           await speak(agentResponse, speakOptions)
           console.log('[TTS] ✅ Finished speaking')
+
+          // ✅ AGREGAR: Check if conversation should end
+          if (agentResult.shouldEndConversation) {
+            console.log('[AI] 👋 Conversation should end')
+            if (onConversationEnd) {
+              setTimeout(() => {
+                onConversationEnd()
+              }, 1000)
+            }
+          }
         } else {
           console.log('[TTS] 🔇 Skipping audio (text mode)')
+
+          if (agentResult.shouldEndConversation && onConversationEnd) {
+            console.log('[AI] 👋 Conversation should end (text mode)')
+            setTimeout(() => {
+              onConversationEnd()
+            }, 500)
+          }
         }
       } catch (error) {
         console.error('=== ❌ ERROR ===', error)
@@ -190,7 +218,16 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
         isTextModeRef.current = false
       }
     },
-    [systemPrompt, onError, language, useConversationalAI, voiceId, elderlyName]
+    [
+      systemPrompt,
+      onError,
+      language,
+      useConversationalAI,
+      voiceId,
+      elderlyName,
+      userId,
+      onConversationEnd,
+    ]
   )
 
   // Setup handlers ONCE on mount

@@ -149,4 +149,26 @@ export const es: Translations = {
     noRecentUpdates: '{userName} sin novedades recientes',
     noConversationToday: 'No he hablado con {userName} hoy ni tengo datos recientes.',
   },
+  tools: {
+    error: 'Error',
+    getCurrentTime: {
+      currentTime: 'Hora actual',
+      date: 'Fecha',
+    },
+    endConversation: {
+      ended: 'Conversación finalizada con el mensaje',
+    },
+    getUserReport: {
+      title: 'Reporte del usuario',
+      totalContacts: 'Contactos totales',
+      activeReminders: 'Recordatorios activos',
+      completedReminders: 'Recordatorios completados',
+      recentActivity: 'Actividad reciente',
+      upcomingReminders: 'Próximos recordatorios',
+    },
+    createReminder: {
+      success: 'Recordatorio creado exitosamente',
+      for: 'para',
+    },
+  },
 }

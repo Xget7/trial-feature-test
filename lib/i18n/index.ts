@@ -1,10 +1,8 @@
 import { I18n } from 'i18n-js'
 import { getLocales } from 'expo-localization'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-
 import { es } from './locales/es'
 import { en } from './locales/en'
-import type { Translations } from './types'
 
 const LANGUAGE_STORAGE_KEY = 'user_language'
 

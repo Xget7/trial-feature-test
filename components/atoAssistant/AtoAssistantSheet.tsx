@@ -40,6 +40,8 @@ export const AtoAssistantSheet: React.FC<AtoAssistantSheetProps> = ({ visible, o
   const autoResumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const previousSpeakingRef = useRef(false)
 
+  const { selectedUser, isLoading: isLoadingUser } = useSelectedUser()
+
   const {
     isListening,
     isSpeaking,
@@ -56,6 +58,15 @@ export const AtoAssistantSheet: React.FC<AtoAssistantSheetProps> = ({ visible, o
     preferCloudTTS: true,
     useConversationalAI: true,
     voiceId: '1WXz8v08ntDcSTeVXMN2',
+    elderlyName: selectedUser?.nickname || selectedUser?.name,
+    userId: selectedUser?.id,
+    onConversationEnd: () => {
+      // ✅ AGREGAR
+      console.log('[SHEET] Conversation ended by Ato')
+      setTimeout(() => {
+        onClose()
+      }, 1500)
+    },
     onError: error => {
       const errorStr = String(error).toLowerCase()
       if (errorStr.includes('no-speech') || errorStr.includes('1110/no speech')) {
@@ -64,8 +75,6 @@ export const AtoAssistantSheet: React.FC<AtoAssistantSheetProps> = ({ visible, o
       console.error('[SHEET] Voice error:', error)
     },
   })
-
-  const { selectedUser, isLoading: isLoadingUser } = useSelectedUser()
 
   const checkPermissions = async (): Promise<boolean> => {
     try {
@@ -156,7 +165,6 @@ export const AtoAssistantSheet: React.FC<AtoAssistantSheetProps> = ({ visible, o
         const granted = await checkPermissions()
         if (!granted) return
 
-        // Set flag BEFORE starting to prevent duplicates
         hasAutoStartedRef.current = true
 
         setTimeout(() => {
