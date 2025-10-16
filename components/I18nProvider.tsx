@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react'
-import { initializeI18n, changeLanguage, t } from '../lib/i18n'
+import { initializeI18n, changeLanguage, t as originalT } from '../lib/i18n'
 
 interface I18nContextType {
   language: string
@@ -12,6 +12,38 @@ const I18nContext = createContext<I18nContextType | undefined>(undefined)
 
 interface I18nProviderProps {
   children: ReactNode
+}
+
+/**
+ * Interpolate parameters into a translation string
+ * Supports both {param} and {{param}} formats
+ * e.g., "Hello {name}" with {name: "John"} -> "Hello John"
+ */
+const interpolate = (text: string, params?: Record<string, any>): string => {
+  if (!params || typeof text !== 'string') return text
+
+  let result = text.replace(/\{(\w+)\}/g, (match, key) => {
+    return params[key] !== undefined ? String(params[key]) : match
+  })
+
+  result = result.replace(/\{\{(\w+)\}\}/g, (match, key) => {
+    return params[key] !== undefined ? String(params[key]) : match
+  })
+
+  return result
+}
+
+/**
+ * Enhanced t() function with interpolation support
+ */
+const tWithInterpolation = (key: string, options?: any): string => {
+  const translation = originalT(key, options)
+
+  if (options && typeof options === 'object' && !Array.isArray(options)) {
+    return interpolate(translation, options)
+  }
+
+  return translation
 }
 
 export const I18nProvider: React.FC<I18nProviderProps> = ({ children }) => {
@@ -48,7 +80,7 @@ export const I18nProvider: React.FC<I18nProviderProps> = ({ children }) => {
   const contextValue: I18nContextType = {
     language,
     setLanguage,
-    t,
+    t: tWithInterpolation,
     isReady,
   }
 

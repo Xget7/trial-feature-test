@@ -58,12 +58,12 @@ const TabBigItem: React.FC<TabItemProps> = ({ label, iconName, onPress, isActive
 export const BottomNavigation: React.FC = () => {
   const router = useRouter()
   const pathname = usePathname()
-  const { showAssistant } = useAssistant() // Use context instead of local state
+  const { showAssistant } = useAssistant()
 
   const handleTabPress = (route: string) => {
     if (route === '/chat') {
       console.log('[BOTTOM NAV] Opening assistant')
-      showAssistant() // Open assistant from context
+      showAssistant()
       return
     }
     router.push(route as any)

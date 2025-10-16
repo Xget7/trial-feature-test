@@ -406,7 +406,11 @@ export const AtoAssistantSheet: React.FC<AtoAssistantSheetProps> = ({ visible, o
             )}
 
             <TextInput
-              style={[styles.textInput, isTextMode && styles.textInputWithMic]}
+              style={[
+                styles.textInput,
+                isTextMode && styles.textInputWithMic,
+                !isTextMode && styles.voiceModeText,
+              ]}
               value={inputText}
               onChangeText={setInputText}
               onFocus={handleInputFocus}
@@ -574,6 +578,9 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
     position: 'relative',
+  },
+  voiceModeText: {
+    paddingStart: 20,
   },
   textInput: {
     backgroundColor: '#F9FAFB',

@@ -5,6 +5,7 @@ import { Reminder } from '../lib/ato-api'
 import { CreateReminderModal } from './CreateReminderModal'
 import { useI18n } from './I18nProvider'
 import { formatRelativeDate } from '../lib/i18n'
+import { useSelectedUser } from '@/contexts/SelectedUserContext'
 
 interface ReminderItemProps {
   reminder: Reminder
@@ -63,7 +64,8 @@ const ReminderItem: React.FC<ReminderItemProps> = ({ reminder, onUpdate }) => {
 }
 
 export const RemindersSection: React.FC = () => {
-  const { selectedUser, currentManager, setError } = useAto()
+  const { currentManager, setError } = useAto()
+  const { selectedUser, isLoading: isLoadingUser } = useSelectedUser()
   const { t } = useI18n()
   const [reminders, setReminders] = useState<Reminder[]>([])
   const [loading, setLoading] = useState(false)
@@ -143,9 +145,10 @@ export const RemindersSection: React.FC = () => {
   }, [loadReminders])
 
   const handleSeeAll = () => {
-    // TODO: Navigate to full reminders screen
     console.log('Navigate to full reminders screen')
   }
+
+  const userName = selectedUser?.nickname || selectedUser?.name || 'el usuario'
 
   return (
     <View style={styles.container}>
@@ -154,18 +157,14 @@ export const RemindersSection: React.FC = () => {
         <TouchableOpacity
           style={styles.createButton}
           onPress={() => setShowCreateModal(true)}
-          disabled={!selectedUser || !currentManager}
+          disabled={!selectedUser || !currentManager || isLoadingUser}
         >
           <Text style={styles.createButtonIcon}>+</Text>
           <Text style={styles.createButtonText}>{t('common.create')}</Text>
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.subtitle}>
-        {t('reminders.subtitle', {
-          userName: selectedUser?.nickname || selectedUser?.name || 'el usuario',
-        })}
-      </Text>
+      <Text style={styles.subtitle}>{t('reminders.subtitle', { userName })}</Text>
 
       {loading ? (
         <View style={styles.loadingContainer}>
@@ -198,7 +197,7 @@ export const RemindersSection: React.FC = () => {
         visible={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         onSubmit={handleCreateReminder}
-        userName={selectedUser?.nickname || selectedUser?.name || ''}
+        userName={userName}
       />
     </View>
   )
