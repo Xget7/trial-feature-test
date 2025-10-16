@@ -146,34 +146,36 @@ export const AtoAssistantSheet: React.FC<AtoAssistantSheetProps> = ({ visible, o
       return
     }
 
-    hasAutoStartedRef.current = false
+    // Only run auto-start logic when modal FIRST opens
+    if (hasAutoStartedRef.current) return
 
     const initVoice = async () => {
-      if (!isMountedRef.current) return
+      if (!isMountedRef.current || hasAutoStartedRef.current) return
 
       try {
         const granted = await checkPermissions()
         if (!granted) return
 
-        if (!hasAutoStartedRef.current) {
-          hasAutoStartedRef.current = true
+        // Set flag BEFORE starting to prevent duplicates
+        hasAutoStartedRef.current = true
 
-          setTimeout(() => {
-            if (isMountedRef.current && visible) {
-              console.log('[SHEET] Auto-starting voice')
-              startListening().catch(err => {
-                console.error('[SHEET] Auto-start error:', err)
-              })
-            }
-          }, 300)
-        }
+        setTimeout(() => {
+          if (isMountedRef.current && visible && !isListening) {
+            console.log('[SHEET] Auto-starting voice')
+            startListening().catch(err => {
+              console.error('[SHEET] Auto-start error:', err)
+              hasAutoStartedRef.current = false // Reset on error
+            })
+          }
+        }, 300)
       } catch (error) {
         console.error('[SHEET] Init error:', error)
+        hasAutoStartedRef.current = false
       }
     }
 
     initVoice()
-  }, [visible, isListening, stopListening, startListening])
+  }, [visible])
 
   useEffect(() => {
     if (previousSpeakingRef.current && !isSpeaking && !isTextMode) {
@@ -281,10 +283,10 @@ export const AtoAssistantSheet: React.FC<AtoAssistantSheetProps> = ({ visible, o
   const badgeColor = isSpeaking
     ? '#10B981'
     : isProcessing
-      ? '#8B5CF6'
-      : isListening
-        ? '#F59E0B'
-        : '#3CCEF5'
+    ? '#8B5CF6'
+    : isListening
+    ? '#F59E0B'
+    : '#3CCEF5'
 
   const getIconVariant = () => {
     if (isSpeaking) return 'pulse'
