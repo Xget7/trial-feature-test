@@ -9,7 +9,7 @@ import {
   ScrollView,
   Alert,
 } from 'react-native'
-import { Reminder } from '../lib/ato-api'
+import { Reminder } from '../lib/atoApi'
 import { useI18n } from './I18nProvider'
 
 interface CreateReminderModalProps {

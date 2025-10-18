@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { atoApi } from '@/lib/ato-api'
-import type { UserWithRelation } from '@/lib/ato-api'
+import { atoApi } from '@/lib/atoApi'
+import type { UserWithRelation } from '@/lib/atoApi'
 import { useAto } from './AtoContext'
 
 interface SelectedUserContextType {

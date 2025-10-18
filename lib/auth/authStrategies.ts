@@ -1,8 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { supabase } from '../supabase'
-import { atoApi } from '../ato-api'
+import { atoApi } from '../atoApi'
 import { AuthStrategy } from './types'
-import { MockUserFactory } from './mock-user-factory'
+import { MockUserFactory } from './mockUserFactory'
 
 const MOCK_OTP_CODE = '123456'
 const LEGACY_TEST_EMAIL = 'gaspi+store-testing@ato.ar'

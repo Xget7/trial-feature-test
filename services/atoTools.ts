@@ -1,4 +1,4 @@
-import { atoApi } from '../lib/ato-api'
+import { atoApi } from '../lib/atoApi'
 import { t } from '../lib/i18n'
 /**
  * Tool definitions for Claude API

@@ -1,5 +1,5 @@
 import { User } from '@supabase/supabase-js'
-import { MOCK_IDS } from '../ato-api'
+import { MOCK_IDS } from '../atoApi'
 
 export class MockUserFactory {
   static createMockUser(managerId: string, email: string): User {

@@ -1,4 +1,4 @@
-import type { AtoManager, AtoUser, UserReport, Contact } from './ato-api'
+import type { AtoManager, AtoUser, UserReport, Contact } from './atoApi'
 
 /**
  * Mock data for development without backend
@@ -313,7 +313,7 @@ export const MOCK_CONTACTS: Record<string, Contact[]> = {
  *
  * @example
  * ```typescript
- * import { MOCK_IDS } from '@/lib/ato-api.mocks'
+ * import { MOCK_IDS } from '@/lib/atoApi.mocks'
  * const manager = await atoApi.getManagerById(MOCK_IDS.managers.maria)
  * ```
  */

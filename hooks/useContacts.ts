@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { atoApi, Contact } from '../lib/ato-api'
+import { atoApi, Contact } from '../lib/atoApi'
 import { LoadingState } from '../types/api'
 
 interface UseContactsResult extends LoadingState {

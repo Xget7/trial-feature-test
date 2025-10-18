@@ -13,7 +13,7 @@ import {
 import { BottomNavigation } from '../components/BottomNavigation'
 import { useAto } from '../contexts/AtoContext'
 import { useContacts } from '../hooks/useContacts'
-import { Contact } from '../lib/ato-api'
+import { Contact } from '../lib/atoApi'
 import { ContactDisplayInfo } from '../types/api'
 import { Ionicons } from '@expo/vector-icons'
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert } from 'react-native'
 import { useAto } from '../contexts/AtoContext'
-import { Reminder } from '../lib/ato-api'
+import { Reminder } from '../lib/atoApi'
 import { CreateReminderModal } from './CreateReminderModal'
 import { useI18n } from './I18nProvider'
 import { formatRelativeDate } from '../lib/i18n'

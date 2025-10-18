@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { supabase } from './supabase'
-import { MOCK_MANAGERS, MOCK_USERS, MOCK_REPORTS } from './ato-api.mocks'
+import { MOCK_MANAGERS, MOCK_USERS, MOCK_REPORTS } from './atoApi.mocks'
 
 const TOKEN_KEY = 'ato_api_token'
 const USE_MOCK_DATA = process.env.EXPO_PUBLIC_USE_MOCK_API === 'true'
@@ -506,7 +506,7 @@ class AtoApiService {
       console.log('🎭 Mock mode: Getting contacts for user', userId)
       await new Promise(resolve => setTimeout(resolve, 600))
 
-      const { MOCK_CONTACTS } = await import('./ato-api.mocks')
+      const { MOCK_CONTACTS } = await import('./atoApi.mocks')
       const userContacts = MOCK_CONTACTS[userId] || []
       return userContacts
     }
@@ -525,4 +525,4 @@ class AtoApiService {
 
 export const atoApi = new AtoApiService()
 
-export { MOCK_IDS } from './ato-api.mocks'
+export { MOCK_IDS } from './atoApi.mocks'

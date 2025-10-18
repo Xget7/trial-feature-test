@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import * as voiceService from '../services/voiceService'
 import { initTTS, speak, stop, addEventListener, cleanup } from '../services/tts/hybridTTSService'
-import { callClaudeAgent, Message, ATO_SYSTEM_PROMPT } from '../services/aiAgent'
+import { callClaudeAgent, Message, ATO_SYSTEM_PROMPT } from '../services/claudeAgent'
 import { Platform } from 'react-native'
 
 const ELEVEN_LABS_API_KEY = process.env.EXPO_PUBLIC_ELEVEN_LABS_API_KEY

@@ -20,7 +20,7 @@ import { useAuth } from '../components/AuthProvider'
 import { useI18n } from '../components/I18nProvider'
 import ErrorModal from '../components/ErrorModal'
 import ContactPopup from '../components/ContactPopup'
-import { AuthStrategyResolver } from '../lib/auth/auth-strategies'
+import { AuthStrategyResolver } from '../lib/auth/authStrategies'
 
 const OTP_LENGTH = 6
 const AUTO_VERIFY_DELAY = 300
