@@ -1,9 +1,16 @@
-import React from 'react'
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import React, { useEffect, useRef } from 'react'
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native'
 import { useRouter, usePathname } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { AtoAssistantIcon } from './atoAssistant/AtoAssistantIcon'
 import { useAssistant } from '@/contexts/AssistantContext'
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  Easing,
+  withTiming,
+} from 'react-native-reanimated'
 
 type IconName = keyof typeof Ionicons.glyphMap
 
@@ -31,7 +38,7 @@ const COLORS = {
   active: '#3B82F6',
   inactive: '#9CA3AF',
   background: '#FFFFFF',
-  shadow: '#3CCEF5',
+  shadow: '#0097f5ff',
   activeBackground: '#EBF4FF',
   bigButtonBg: '#3CCEF5',
 } as const
@@ -45,16 +52,38 @@ const TabItem: React.FC<TabItemProps> = ({ label, iconName, onPress, isActive })
   </TouchableOpacity>
 )
 
-const TabBigItem: React.FC<TabItemProps> = ({ label, iconName, onPress, isActive }) => (
-  <TouchableOpacity style={styles.bigTabItem} onPress={onPress} activeOpacity={0.7}>
-    <View style={styles.iconBigContainer}>
-      <View style={styles.assistantIconBackground}>
-        <AtoAssistantIcon width={45} color="white" />
-      </View>
-    </View>
-  </TouchableOpacity>
-)
+const TabBigItem: React.FC<TabItemProps> = ({ label, iconName, onPress, isActive }) => {
+  const glowOpacity = useSharedValue(0.2)
 
+  React.useEffect(() => {
+    glowOpacity.value = withRepeat(
+      withTiming(0.55, {
+        duration: 2000,
+        easing: Easing.inOut(Easing.ease),
+      }),
+      -1,
+      true // reverse
+    )
+  }, [])
+
+  const animatedGlowStyle = useAnimatedStyle(() => ({
+    opacity: glowOpacity.value,
+  }))
+
+  return (
+    <TouchableOpacity style={styles.bigTabItem} onPress={onPress} activeOpacity={0.7}>
+      <View style={styles.iconBigContainer}>
+        {/* Solo la sombra se anima */}
+        <Animated.View style={[styles.glowEffect, animatedGlowStyle]} />
+
+        {/* Ícono estático */}
+        <View style={styles.assistantIconBackground}>
+          <AtoAssistantIcon width={45} color="white" />
+        </View>
+      </View>
+    </TouchableOpacity>
+  )
+}
 export const BottomNavigation: React.FC = () => {
   const router = useRouter()
   const pathname = usePathname()
@@ -163,19 +192,18 @@ const styles = StyleSheet.create({
   iconBigContainer: {
     width: 70,
     height: 70,
-    borderRadius: 100,
+    borderRadius: 35,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: COLORS.bigButtonBg,
     shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowRadius: 4,
+    elevation: 4,
   },
   assistantIconBackground: {
-    width: 90,
-    height: 90,
+    width: 70,
+    height: 70,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -198,5 +226,23 @@ const styles = StyleSheet.create({
   labelActive: {
     color: COLORS.active,
     fontWeight: '600',
+  },
+  glowEffect: {
+    position: 'absolute',
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: COLORS.bigButtonBg,
+    ...Platform.select({
+      ios: {
+        shadowColor: COLORS.shadow,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.8, // Más visible en iOS
+        shadowRadius: 20,
+      },
+      android: {
+        elevation: 10,
+      },
+    }),
   },
 })

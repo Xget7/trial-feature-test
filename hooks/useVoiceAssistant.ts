@@ -270,7 +270,7 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
     voiceService.setEventHandlers({
       onStart: () => {
         console.log('[VOICE] ✅ Started listening')
-        isStartingRef.current = false // ✅ Reset starting flag
+        isStartingRef.current = false
         if (isMounted.current && !isTextModeRef.current) {
           setState(prev => ({ ...prev, isListening: true, transcript: '' }))
           lastTranscriptRef.current = ''
