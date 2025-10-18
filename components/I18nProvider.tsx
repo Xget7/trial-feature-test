@@ -19,7 +19,7 @@ interface I18nProviderProps {
  * Supports both {param} and {{param}} formats
  * e.g., "Hello {name}" with {name: "John"} -> "Hello John"
  */
-const interpolate = (text: string, params?: Record<string, any>): string => {
+export const interpolate = (text: string, params?: Record<string, any>): string => {
   if (!params || typeof text !== 'string') return text
 
   let result = text.replace(/\{(\w+)\}/g, (match, key) => {

@@ -129,6 +129,16 @@ export const AtoAssistantSheet: React.FC<AtoAssistantSheetProps> = ({ visible, o
       }
 
       setHasPermissions(true)
+
+      console.log('[SHEET] Permission granted, starting voice...')
+      setTimeout(() => {
+        if (isMountedRef.current && visible) {
+          startListening().catch(err => {
+            console.error('[SHEET] Start after permission error:', err)
+          })
+        }
+      }, 300)
+
       return true
     } catch (error) {
       console.error('[SHEET] Permission error:', error)
