@@ -207,14 +207,7 @@ async function createReminder(
   console.log(`[ATO TOOLS] 📝 Creating reminder:`, { userId, task, scheduledFor })
 
   try {
-    // TODO: Implement when API is ready
-    // const reminder = await atoAPI.createReminder({
-    //   user_id: userId,
-    //   task,
-    //   scheduled_for: scheduledFor,
-    // })
-
-    // Mockeadito
+    // Mockeado
     const reminder = {
       id: `reminder-${Date.now()}`,
       user_id: userId,

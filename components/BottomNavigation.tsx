@@ -49,7 +49,7 @@ const TabBigItem: React.FC<TabItemProps> = ({ label, iconName, onPress, isActive
   <TouchableOpacity style={styles.bigTabItem} onPress={onPress} activeOpacity={0.7}>
     <View style={styles.iconBigContainer}>
       <View style={styles.assistantIconBackground}>
-        <AtoAssistantIcon width={55} color="white" />
+        <AtoAssistantIcon width={45} color="white" />
       </View>
     </View>
   </TouchableOpacity>
@@ -161,8 +161,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   iconBigContainer: {
-    width: 85,
-    height: 85,
+    width: 70,
+    height: 70,
     borderRadius: 100,
     justifyContent: 'center',
     alignItems: 'center',
