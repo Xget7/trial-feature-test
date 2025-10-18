@@ -2,7 +2,7 @@ import { ATO_TOOLS, executeAtoTool, formatToolResult, ToolResult } from './atoTo
 
 export interface Message {
   role: 'user' | 'assistant' | 'system'
-  content: string | any[] // Allow array for tool_use/tool_result
+  content: string | any[]
 }
 
 export interface CallClaudeResult {
@@ -59,25 +59,51 @@ Your mission: Improve the elderly person's quality of life by providing independ
 
 export const ATO_SYSTEM_PROMPT = generateAtoSystemPrompt()
 
-const CLAUDE_API_KEY = process.env.EXPO_PUBLIC_CLAUDE_API_KEY
 const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages'
 
+/**
+ * Calls Claude AI API with tool-calling capabilities for the Ato Assistant.
+ *
+ * This function implements an agentic loop that allows Claude to:
+ * - Process user messages with context-aware system prompts
+ * - Execute available tools (reminders, user reports, time queries, etc.)
+ * - Return conversational responses in Rioplatense Spanish
+ *
+ * @param messages - Array of conversation messages with role and content
+ * @param options - Optional configuration object
+ * @param options.systemPrompt - Custom system prompt (defaults to Ato Assistant prompt)
+ * @param options.elderlyName - Name of the elderly person for personalization
+ * @param options.userId - User ID for tool execution context (required for certain tools)
+ *
+ * @returns Promise resolving to:
+ *   - response: Claude's final text response
+ *   - shouldEndConversation: Boolean flag indicating if conversation should terminate
+ *   - toolsUsed: Array of tool names that were executed during the call
+ *
+ * @throws Error if API key is missing or API request fails
+ *
+ * @example
+ * ```typescript
+ * const result = await callClaudeAgent(
+ *   [{ role: 'user', content: '¿Qué hora es?' }],
+ *   { elderlyName: 'María', userId: 'user-123' }
+ * )
+ * console.log(result.response)
+ * console.log(result.toolsUsed)
+ * ```
+ */
 export const callClaudeAgent = async (
   messages: Message[],
   options?: {
     systemPrompt?: string
     elderlyName?: string
-    userId?: string // For tool execution context
+    userId?: string
   }
 ): Promise<CallClaudeResult> => {
   try {
-    console.log('[AI Agent] 🤖 Calling Claude API with tool calling')
-    console.log('[AI Agent] Messages count:', messages.length)
-    console.log('[AI Agent] Elderly name:', options?.elderlyName || 'not specified')
-    console.log('[AI Agent] User ID:', options?.userId || 'not specified')
+    const CLAUDE_API_KEY = process.env.EXPO_PUBLIC_CLAUDE_API_KEY
 
     if (!CLAUDE_API_KEY) {
-      console.error('[AI Agent] ❌ No API key found')
       throw new Error('Claude API key no configurada')
     }
 
@@ -94,25 +120,21 @@ export const callClaudeAgent = async (
     let shouldEndConversation = false
     let finalResponse = ''
 
-    // Tool calling loop - may need multiple rounds
     let continueLoop = true
-    let maxIterations = 5 // Prevent infinite loops
+    let maxIterations = 5
     let iterations = 0
 
     while (continueLoop && iterations < maxIterations) {
       iterations++
-      console.log(`[AI Agent] 🔄 Tool calling iteration ${iterations}`)
 
       const requestBody = {
         model: 'claude-sonnet-4-5-20250929',
-        max_tokens: 1024,
+        max_tokens: 2024,
         temperature: 0.8,
         system: systemPrompt,
         messages: currentMessages,
-        tools: ATO_TOOLS, // ✅ Enable tool calling
+        tools: ATO_TOOLS,
       }
-
-      console.log('[AI Agent] 📡 Sending request to Claude...')
 
       const response = await fetch(CLAUDE_API_URL, {
         method: 'POST',
@@ -124,39 +146,24 @@ export const callClaudeAgent = async (
         body: JSON.stringify(requestBody),
       })
 
-      console.log('[AI Agent] Response status:', response.status)
-
       if (!response.ok) {
-        const errorText = await response.text()
-        console.error('[AI Agent] ❌ API Error:', response.status, errorText)
         throw new Error(`Claude API error: ${response.status}`)
       }
 
       const data = await response.json()
-      console.log('[AI Agent] ✅ Response received')
-      console.log('[AI Agent] Stop reason:', data.stop_reason)
 
-      // Check if Claude wants to use tools
       if (data.stop_reason === 'tool_use') {
-        console.log('[AI Agent] 🔧 Claude wants to use tools')
-
-        // Find all tool_use blocks in the response
         const toolUses = data.content.filter((block: any) => block.type === 'tool_use')
-        console.log(`[AI Agent] Found ${toolUses.length} tool use(s)`)
 
-        // Add assistant's response with tool_use to messages
         currentMessages.push({
           role: 'assistant',
           content: data.content,
         })
 
-        // Execute all tools and collect results
         const toolResults = []
         for (const toolUse of toolUses) {
-          console.log(`[AI Agent] Executing tool: ${toolUse.name}`)
           toolsUsed.push(toolUse.name)
 
-          // Add userId to tool input if needed and not provided
           const toolInput = { ...toolUse.input }
           if (
             (toolUse.name === 'get_user_report' || toolUse.name === 'create_reminder') &&
@@ -168,12 +175,10 @@ export const callClaudeAgent = async (
 
           const result = await executeAtoTool(toolUse.name, toolInput)
 
-          // Check if we should end the conversation
           if (result.shouldEndConversation) {
             shouldEndConversation = true
           }
 
-          // Format result for Claude
           const formattedResult = formatToolResult(toolUse.name, result)
 
           toolResults.push({
@@ -183,33 +188,22 @@ export const callClaudeAgent = async (
           })
         }
 
-        // Add tool results to messages
         currentMessages.push({
           role: 'user',
           content: toolResults,
         })
 
-        // Continue loop to get Claude's final response
         continueLoop = true
       } else {
-        // No more tools to use, get final text response
-        console.log('[AI Agent] 📝 Getting final text response')
-
         const textContent = data.content.find((block: any) => block.type === 'text')
         if (textContent) {
           finalResponse = textContent.text
-          console.log('[AI Agent] Response text length:', finalResponse.length)
         } else {
-          console.error('[AI Agent] ❌ No text content in response')
           throw new Error('No text content in response')
         }
 
         continueLoop = false
       }
-    }
-
-    if (iterations >= maxIterations) {
-      console.warn('[AI Agent] ⚠️ Max iterations reached')
     }
 
     if (!finalResponse) {
@@ -222,7 +216,6 @@ export const callClaudeAgent = async (
       toolsUsed: toolsUsed.length > 0 ? toolsUsed : undefined,
     }
   } catch (error) {
-    console.error('[AI Agent] ❌ Fatal error:', error)
     throw new Error('Error al procesar la solicitud con Claude')
   }
 }
