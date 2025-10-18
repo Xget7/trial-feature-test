@@ -35,6 +35,7 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      "./plugins/withAndroidManifestFix.js",
       "expo-router",
       [
         "expo-splash-screen",
@@ -43,6 +44,14 @@
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
+        }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Esta aplicación necesita acceso al micrófono para que puedas hablar con Ato.",
+          "speechRecognitionPermission": "Esta aplicación necesita acceso al reconocimiento de voz para entender lo que dices a Ato.",
+          "androidSpeechServicePackages": ["com.google.android.googlequicksearchbox"]
         }
       ],
       [
@@ -57,7 +66,7 @@
       [
         "expo-av",
         {
-          "microphonePermission": "Esta aplicación necesita acceso al micrófono para que puedas hablar con Ato, tu asistente de voz."
+          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone."
         }
       ],
       [

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { atoApi, AtoManager, AtoUser, UserReport } from '../lib/ato-api'
 import { t } from '../lib/i18n'
+import { interpolate } from '../components/I18nProvider'
 
 interface AtoContextType {
   // Manager data
@@ -60,17 +61,25 @@ export const AtoProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setLoading(true)
       setError(null)
 
-      // Set the API token
+      // Set the API token (works for both mock and real mode)
       await atoApi.setAuthToken(accessToken)
 
-      // Get manager by ID (manager ID matches Supabase user ID)
+      // Get manager by ID - the API service will handle mock vs real mode
       const manager = await atoApi.getManagerById(supabaseUserId)
       setCurrentManager(manager)
 
-      // TODO: Implement API endpoint to fetch users managed by this manager
-      // For now, initialize with empty state - users must be loaded through proper API
-      setSelectedUser(null)
-      setManagedUsers([])
+      // Get users managed by this manager
+      const users = await atoApi.getUsersByManagerId(supabaseUserId)
+      setManagedUsers(users)
+
+      // If there are users, select the first one by default
+      if (users.length > 0) {
+        setSelectedUser(users[0])
+      } else {
+        setSelectedUser(null)
+      }
+
+      console.log('Manager and users initialized:', { manager, userCount: users.length })
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error initializing data'
       setError(errorMessage)
@@ -87,33 +96,9 @@ export const AtoProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setLoading(true)
       setError(null)
 
-      // Mock user report for development
-      const mockReport: UserReport = {
-        user_id: selectedUser.id,
-        report_generated_at: new Date().toISOString(),
-        summary: {
-          total_contacts: 8,
-          total_reminders: 12,
-          active_reminders: 3,
-          completed_reminders: 9,
-        },
-        recent_activity: [
-          {
-            type: 'reminder_completed',
-            timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
-            description: 'Completó recordatorio: Tomar medicamento',
-          },
-        ],
-        upcoming_reminders: [
-          {
-            id: 'reminder-1',
-            task: 'Poner agua para el mate',
-            scheduled_for: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-          },
-        ],
-      }
-
-      setUserReport(mockReport)
+      // Get user report from API - handles mock vs real mode
+      const report = await atoApi.getUserReport(selectedUser.id)
+      setUserReport(report)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error loading user report'
       setError(errorMessage)
@@ -150,15 +135,15 @@ export const AtoProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const isToday = activityDate.toDateString() === today.toDateString()
 
       if (isToday) {
-        return t('userStatus.recentActivity', { userName })
+        return interpolate(t('userStatus.recentActivity'), { userName })
       } else {
-        return t('userStatus.lastActivity', {
+        return interpolate(t('userStatus.lastActivity'), {
           userName,
           date: activityDate.toLocaleDateString(),
         })
       }
     } else {
-      return t('userStatus.noRecentActivity', { userName })
+      return interpolate(t('userStatus.noRecentActivity'), { userName })
     }
   }
 
@@ -175,12 +160,9 @@ export const AtoProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     if (!selectedUser) return
 
-    const interval = setInterval(
-      () => {
-        refreshUserReport()
-      },
-      5 * 60 * 1000
-    ) // 5 minutes
+    const interval = setInterval(() => {
+      refreshUserReport()
+    }, 5 * 60 * 1000) // 5 minutes
 
     return () => clearInterval(interval)
   }, [selectedUser])

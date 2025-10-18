@@ -46,15 +46,10 @@ export default function RootLayout() {
 
   return (
     <I18nProvider>
-      {/* 1️⃣ AtoProvider PRIMERO (no depende de nadie) */}
       <AtoProvider>
-        {/* 2️⃣ AuthProvider usa useAto() */}
         <AuthProvider>
-          {/* 3️⃣ AuthGuard protege rutas */}
           <AuthGuard>
-            {/* 4️⃣ SelectedUserProvider usa useAto() */}
             <SelectedUserProvider>
-              {/* 5️⃣ AssistantProvider para el modal */}
               <AssistantProvider>
                 <RootLayoutContent />
               </AssistantProvider>
