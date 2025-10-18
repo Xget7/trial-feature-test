@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import * as voiceService from '../services/voiceService'
 import { initTTS, speak, stop, addEventListener, cleanup } from '../services/tts/hybridTTSService'
 import { callClaudeAgent, Message, ATO_SYSTEM_PROMPT } from '../services/aiAgent'
+import { Platform } from 'react-native'
+
 const ELEVEN_LABS_API_KEY = process.env.EXPO_PUBLIC_ELEVEN_LABS_API_KEY
 
 interface UseVoiceAssistantOptions {
@@ -231,6 +233,34 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
   )
 
   // Setup handlers ONCE on mount
+
+  useEffect(() => {
+    const initializeVoiceModule = async () => {
+      try {
+        console.log('[VOICE ASSISTANT] 🚀 Initializing Voice module')
+
+        const initialized = await voiceService.initializeVoice()
+
+        if (!initialized) {
+          console.error('[VOICE ASSISTANT] ❌ Voice module not available')
+          const error = new Error('Speech recognition not available on this device')
+          if (onError) {
+            onError(error)
+          }
+          return
+        }
+
+        console.log('[VOICE ASSISTANT] ✅ Voice module ready')
+      } catch (error) {
+        console.error('[VOICE ASSISTANT] ❌ Failed to initialize Voice:', error)
+        if (onError) {
+          onError(error as Error)
+        }
+      }
+    }
+
+    initializeVoiceModule()
+  }, [onError])
   useEffect(() => {
     if (handlersSetupRef.current) return
 
@@ -406,10 +436,9 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
         clearTimeout(silenceTimerRef.current)
         silenceTimerRef.current = null
       }
-      cleanup()
+      voiceService.cleanup()
     }
   }, [])
-
   const startListening = useCallback(async () => {
     // ✅ Prevent concurrent starts
     if (isStartingRef.current) {

@@ -1,10 +1,11 @@
 import React from 'react'
 import { View, Text, StyleSheet } from 'react-native'
 import { useAto } from '../contexts/AtoContext'
-import { t } from '../lib/i18n'
+import { useI18n } from './I18nProvider'
 
 export const UserStatusSection: React.FC = () => {
   const { selectedUser } = useAto()
+  const { t } = useI18n()
 
   if (!selectedUser) {
     return (
@@ -54,7 +55,7 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   content: {
-    padding: 32,
+    padding: 16,
     alignItems: 'center',
   },
   title: {
@@ -62,7 +63,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1F2937',
     marginBottom: 12,
-    marginTop: 12,
+    marginTop: 6,
     textAlign: 'center',
   },
   subtitle: {
