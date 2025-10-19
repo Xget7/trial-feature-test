@@ -461,31 +461,41 @@ class AtoApiService {
     return data
   }
 
-  // Reports API
   async getUserReport(userId: string): Promise<UserReport> {
-    if (USE_MOCK_DATA) {
-      console.log('🎭 Mock mode: Getting report for user', userId)
-      await new Promise(resolve => setTimeout(resolve, 800))
+  if (USE_MOCK_DATA) {
+    console.log('🎭 Mock mode: Getting report for user', userId)
+    await new Promise(resolve => setTimeout(resolve, 800))
 
-      const report = MOCK_REPORTS[userId]
-      if (!report) {
-        return {
-          user_id: userId,
-          report_generated_at: new Date().toISOString(),
-          summary: {
-            total_contacts: 0,
-            total_reminders: 0,
-            active_reminders: 0,
-            completed_reminders: 0,
-          },
-          recent_activity: [],
-          upcoming_reminders: [],
-        }
+    const report = MOCK_REPORTS[userId]
+    if (!report) {
+      return {
+        user_id: userId,
+        report_generated_at: new Date().toISOString(),
+        summary: {
+          total_contacts: 0,
+          total_reminders: 0,
+          active_reminders: 0,
+          completed_reminders: 0,
+        },
+        recent_activity: [],
+        upcoming_reminders: [],
       }
-      return report
     }
+    return report
+  }
 
-    console.log('🔐 Real mode: Getting report (mock data for now)')
+  console.log('🔐 Real mode: Getting report from Supabase for user', userId)
+  
+  const { data, error } = await supabase
+    .from('user_reports')
+    .select('*')
+    .eq('user_id', userId)
+    .order('report_generated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) {
+    console.error('Error getting user report:', error)
     return {
       user_id: userId,
       report_generated_at: new Date().toISOString(),
@@ -499,6 +509,24 @@ class AtoApiService {
       upcoming_reminders: [],
     }
   }
+
+  if (!data) {
+    return {
+      user_id: userId,
+      report_generated_at: new Date().toISOString(),
+      summary: {
+        total_contacts: 0,
+        total_reminders: 0,
+        active_reminders: 0,
+        completed_reminders: 0,
+      },
+      recent_activity: [],
+      upcoming_reminders: [],
+    }
+  }
+
+  return data as UserReport
+}
 
   // Contacts API
   async getContactsForUser(userId: string): Promise<Contact[]> {

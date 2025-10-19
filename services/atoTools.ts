@@ -1,9 +1,6 @@
 import { atoApi } from '../lib/atoApi'
 import { t } from '../lib/i18n'
-/**
- * Tool definitions for Claude API
- * These define the actions that Ato can perform
- */
+
 export interface Tool {
   name: string
   description: string
@@ -14,14 +11,11 @@ export interface Tool {
   }
 }
 
-/**
- * Available tools that Ato can use
- */
 export const ATO_TOOLS: Tool[] = [
   {
     name: 'get_current_time',
     description:
-      'Obtiene la hora y fecha actual del dispositivo. Usa esto cuando el usuario pregunta qué hora es o qué día es hoy.',
+      'Gets the current time and date from the device. Use this when the manager asks what time it is or what day is today.',
     input_schema: {
       type: 'object',
       properties: {},
@@ -31,13 +25,13 @@ export const ATO_TOOLS: Tool[] = [
   {
     name: 'end_conversation',
     description:
-      'Termina la conversación con el usuario. Usa esto cuando el usuario dice adiós, chau, nos vemos, o indica que quiere terminar la conversación.',
+      'Ends the conversation with the manager. Use this when the manager says goodbye, bye, see you, or indicates they want to end the conversation.',
     input_schema: {
       type: 'object',
       properties: {
         farewell_message: {
           type: 'string',
-          description: 'Un mensaje breve y cálido de despedida para el usuario',
+          description: 'A brief and warm goodbye message for the manager',
         },
       },
       required: ['farewell_message'],
@@ -46,13 +40,13 @@ export const ATO_TOOLS: Tool[] = [
   {
     name: 'get_user_report',
     description:
-      'Obtiene el reporte completo de un usuario, incluyendo contactos recientes, recordatorios activos y próximos, y actividad reciente. Usa esto cuando preguntan cómo está el usuario, qué ha estado haciendo, o para obtener información general sobre su estado.',
+      'Gets a complete report about an elderly user (the manager\'s family member), including recent contacts, active and upcoming reminders, and recent activity. Use this when the manager asks how their elderly family member is doing, what they have been doing, or to get general information about their status. The "user" refers to the elderly person being cared for, not the manager.',
     input_schema: {
       type: 'object',
       properties: {
         user_id: {
           type: 'string',
-          description: 'El ID del usuario del cual obtener el reporte',
+          description: 'The ID of the elderly user (family member) to get the report for',
         },
       },
       required: ['user_id'],
@@ -61,31 +55,32 @@ export const ATO_TOOLS: Tool[] = [
   {
     name: 'create_reminder',
     description:
-      'Crea un recordatorio para el usuario. Usa esto cuando el usuario pide que le recuerdes algo.',
+      'Creates a reminder for the elderly user. Use this when the manager asks to remind their elderly family member about something. The reminder will be sent to the elderly person, not to the manager.',
     input_schema: {
       type: 'object',
       properties: {
         user_id: {
           type: 'string',
-          description: 'El ID del usuario para quien crear el recordatorio',
+          description: 'The ID of the elderly user (family member) to create the reminder for',
+        },
+        manager_id: {
+          type: 'string',
+          description: 'The ID of the manager creating the reminder',
         },
         task: {
           type: 'string',
-          description: 'La tarea o recordatorio que se debe enviar',
+          description: 'The task or reminder to be sent to the elderly user',
         },
         scheduled_for: {
           type: 'string',
-          description: 'Fecha y hora en formato ISO 8601 (ej: 2025-01-15T14:30:00Z)',
+          description: 'Date and time in ISO 8601 format (e.g., 2025-01-15T14:30:00Z)',
         },
       },
-      required: ['user_id', 'task', 'scheduled_for'],
+      required: ['user_id', 'manager_id', 'task', 'scheduled_for'],
     },
   },
 ]
 
-/**
- * Tool execution results
- */
 export interface ToolResult {
   success: boolean
   data?: any
@@ -93,9 +88,6 @@ export interface ToolResult {
   shouldEndConversation?: boolean
 }
 
-/**
- * Execute a tool based on its name and input
- */
 export const executeAtoTool = async (
   toolName: string,
   toolInput: Record<string, any>
@@ -115,27 +107,28 @@ export const executeAtoTool = async (
         return await getUserReport(toolInput.user_id)
 
       case 'create_reminder':
-        return await createReminder(toolInput.user_id, toolInput.task, toolInput.scheduled_for)
+        return await createReminder(
+          toolInput.user_id,
+          toolInput.manager_id,
+          toolInput.task,
+          toolInput.scheduled_for
+        )
 
       default:
         console.error(`[ATO TOOLS] ❌ Unknown tool: ${toolName}`)
         return {
           success: false,
-          error: `Herramienta desconocida: ${toolName}`,
+          error: `Unknown tool: ${toolName}`,
         }
     }
   } catch (error) {
     console.error(`[ATO TOOLS] ❌ Error executing ${toolName}:`, error)
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Error desconocido',
+      error: error instanceof Error ? error.message : 'Unknown error',
     }
   }
 }
-
-/**
- * Tool implementations
- */
 
 async function getCurrentTime(): Promise<ToolResult> {
   const now = new Date()
@@ -194,26 +187,36 @@ async function getUserReport(userId: string): Promise<ToolResult> {
     console.error(`[ATO TOOLS] ❌ Error getting report:`, error)
     return {
       success: false,
-      error: 'No pude obtener el reporte del usuario',
+      error: 'Could not get user report',
     }
   }
 }
 
 async function createReminder(
   userId: string,
+  managerId: string,
   task: string,
   scheduledFor: string
 ): Promise<ToolResult> {
-  console.log(`[ATO TOOLS] 📝 Creating reminder:`, { userId, task, scheduledFor })
+  console.log(`[ATO TOOLS] 📝 Creating reminder:`, { userId, managerId, task, scheduledFor })
 
   try {
-    // Mockeado
-    const reminder = {
-      id: `reminder-${Date.now()}`,
+    const reminder = await atoApi.createReminder({
       user_id: userId,
+      manager_id: managerId,
       task,
       scheduled_for: scheduledFor,
+      rrule: null,
       status: 'PENDING',
+      last_sent_at: null,
+      attempts: 0,
+    })
+
+    if (!reminder) {
+      return {
+        success: false,
+        error: 'Could not create reminder',
+      }
     }
 
     console.log(`[ATO TOOLS] ✅ Reminder created:`, reminder.id)
@@ -226,14 +229,11 @@ async function createReminder(
     console.error(`[ATO TOOLS] ❌ Error creating reminder:`, error)
     return {
       success: false,
-      error: 'No pude crear el recordatorio',
+      error: 'Could not create reminder',
     }
   }
 }
 
-/**
- * Format tool result for Claude
- */
 export const formatToolResult = (toolName: string, result: ToolResult): string => {
   if (!result.success) {
     return `${t('tools.error')}: ${result.error}`
