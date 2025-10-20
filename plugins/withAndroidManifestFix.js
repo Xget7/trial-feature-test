@@ -4,7 +4,6 @@ const {
   withGradleProperties,
 } = require('@expo/config-plugins')
 
-// Fix AndroidManifest
 function withManifestFix(config) {
   return withAndroidManifest(config, async config => {
     const androidManifest = config.modResults

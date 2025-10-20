@@ -74,7 +74,6 @@ const setupVoiceListeners = (): void => {
     })
   )
 
-  // Result event
   listeners.push(
     ExpoSpeechRecognitionModule.addListener('result', event => {
       console.log('=== SPEECH RESULTS ===')
@@ -102,7 +101,6 @@ const setupVoiceListeners = (): void => {
     })
   )
 
-  // Error event
   listeners.push(
     ExpoSpeechRecognitionModule.addListener('error', event => {
       console.error('=== SPEECH ERROR ===')
@@ -119,7 +117,6 @@ const setupVoiceListeners = (): void => {
     })
   )
 
-  // Volume change event (optional)
   listeners.push(
     ExpoSpeechRecognitionModule.addListener('volumechange', event => {
       if (eventHandlers.onVolumeChange && event.value !== undefined) {

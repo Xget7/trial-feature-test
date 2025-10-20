@@ -104,21 +104,10 @@ class ElevenLabsTTSService {
     const {
       voiceId = '21m00Tcm4TlvDq8ikWAM',
       model = this.defaultModel,
-      stability = 0.5,
       similarityBoost = 0.8,
-      style = 0,
-      useSpeakerBoost = false,
       optimizeStreamingLatency = 0,
       outputFormat = 'mp3_44100_128',
     } = options
-
-    console.log('╔════════════════════════════════════════╗')
-    console.log('║   ELEVENLABS TTS REQUEST              ║')
-    console.log('╚════════════════════════════════════════╝')
-    console.log('[ELEVENLABS] Text length:', text.length, 'characters')
-    console.log('[ELEVENLABS] Voice ID:', voiceId)
-    console.log('[ELEVENLABS] Model:', model)
-    console.log('[ELEVENLABS] API Key:', this.apiKey.substring(0, 10) + '...')
 
     try {
       // Stop any currently playing sound
@@ -135,18 +124,16 @@ class ElevenLabsTTSService {
 
       const url = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?${queryParams.toString()}`
 
-      console.log('[ELEVENLABS] 📡 API URL:', url)
-      console.log('[ELEVENLABS] 🚀 Making API request...')
+      console.log('[ELEVENLABS] Making API request...')
 
       const requestBody = {
         text,
         model_id: model,
         voice_settings: {
           speed: 1.0,
+          similarityBoost: similarityBoost,
         },
       }
-
-      console.log('[ELEVENLABS] Request body:', JSON.stringify(requestBody, null, 2))
 
       // Call ElevenLabs API
       const response = await fetch(url, {
@@ -249,7 +236,7 @@ class ElevenLabsTTSService {
     console.log('[ELEVENLABS] 🌊 Streaming not yet implemented, using standard TTS')
     return this.speak(text, {
       ...options,
-      optimizeStreamingLatency: 4, // Maximum optimization
+      optimizeStreamingLatency: 2,
     })
   }
 

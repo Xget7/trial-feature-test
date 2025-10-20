@@ -173,9 +173,7 @@ class HybridTTSService {
               await this.elevenLabs.speak(text, {
                 voiceId: options.voiceId,
                 model: options.model,
-                stability: options.stability,
                 similarityBoost: options.similarityBoost,
-                style: options.style,
                 optimizeStreamingLatency: options.optimizeStreamingLatency,
               })
             }

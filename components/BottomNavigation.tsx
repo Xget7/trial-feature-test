@@ -62,7 +62,7 @@ const TabBigItem: React.FC<TabItemProps> = ({ label, iconName, onPress, isActive
         easing: Easing.inOut(Easing.ease),
       }),
       -1,
-      true // reverse
+      true
     )
   }, [])
 
@@ -73,10 +73,7 @@ const TabBigItem: React.FC<TabItemProps> = ({ label, iconName, onPress, isActive
   return (
     <TouchableOpacity style={styles.bigTabItem} onPress={onPress} activeOpacity={0.7}>
       <View style={styles.iconBigContainer}>
-        {/* Solo la sombra se anima */}
         <Animated.View style={[styles.glowEffect, animatedGlowStyle]} />
-
-        {/* Ícono estático */}
         <View style={styles.assistantIconBackground}>
           <AtoAssistantIcon width={45} color="white" />
         </View>
@@ -237,7 +234,7 @@ const styles = StyleSheet.create({
       ios: {
         shadowColor: COLORS.shadow,
         shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.8, // Más visible en iOS
+        shadowOpacity: 0.8, 
         shadowRadius: 20,
       },
       android: {

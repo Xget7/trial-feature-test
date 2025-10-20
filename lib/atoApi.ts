@@ -477,33 +477,49 @@ class AtoApiService {
     return data
   }
 
- async getUserReport(userId: string): Promise<UserReport> {
-  if (USE_MOCK_DATA) {
-    console.log('Mock mode: Getting report for user', userId)
-    await new Promise(resolve => setTimeout(resolve, 800))
+  async getUserReport(userId: string, managerId?: string): Promise<UserReport> {
+    if (USE_MOCK_DATA) {
+      console.log('Mock mode: Getting report for user', userId)
+      await new Promise(resolve => setTimeout(resolve, 800))
 
-    const report = MOCK_REPORTS[userId]
-    if (!report) {
-      return {
-        user_id: userId,
-        report_generated_at: new Date().toISOString(),
-        summary: {
-          total_contacts: 0,
-          total_reminders: 0,
-          active_reminders: 0,
-          completed_reminders: 0,
-          failed_reminders: 0,
-          pending_reminders: 0,
-        },
-        recent_activity: [],
-        upcoming_reminders: [],
-        recent_reminders: [],
+      const report = MOCK_REPORTS[userId]
+      if (!report) {
+        return {
+          user_id: userId,
+          report_generated_at: new Date().toISOString(),
+          summary: {
+            total_contacts: 0,
+            total_reminders: 0,
+            active_reminders: 0,
+            completed_reminders: 0,
+            failed_reminders: 0,
+            pending_reminders: 0,
+          },
+          recent_activity: [],
+          upcoming_reminders: [],
+          recent_reminders: [],
+        }
       }
+      return report
     }
-    return report
+
+  console.log('Real mode: Getting report for user', userId)
+  
+  // Try to fetch from external API first if managerId is provided
+  if (managerId) {
+    try {
+      const externalReport = await this.fetchExternalReport(managerId)
+      if (externalReport) {
+        console.log('External API report received successfully')
+        return externalReport
+      }
+    } catch (error) {
+      console.warn('External API failed, falling back to Supabase:', error)
+    }
   }
 
-  console.log('Real mode: Building comprehensive report from Supabase for user', userId)
+  // Fallback: Build report from Supabase
+  console.log('Building comprehensive report from Supabase for user', userId)
   
   try {
     const now = new Date().toISOString()
@@ -623,6 +639,58 @@ class AtoApiService {
       upcoming_reminders: [],
       recent_reminders: [],
     }
+  }
+}
+
+private async fetchExternalReport(managerId: string): Promise<UserReport | null> {
+  const REPORTS_API_URL = process.env.EXPO_PUBLIC_REPORTS_API_URL || 'https://example.com/reports'
+  
+  try {
+    console.log('Fetching external report for manager:', managerId)
+    
+    const token = await this.getToken()
+    if (!token) {
+      console.warn('No auth token available for external API')
+      return null
+    }
+
+    const response = await fetch(`${REPORTS_API_URL}/${managerId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      console.error('External API error:', response.status, response.statusText)
+      return null
+    }
+
+    const data = await response.json()
+  
+    const report: UserReport = {
+      user_id: data.user_id || data.userId,
+      report_generated_at: data.report_generated_at || data.generatedAt || new Date().toISOString(),
+      summary: {
+        total_contacts: data.summary?.total_contacts || data.totalContacts || 0,
+        total_reminders: data.summary?.total_reminders || data.totalReminders || 0,
+        active_reminders: data.summary?.active_reminders || data.activeReminders || 0,
+        completed_reminders: data.summary?.completed_reminders || data.completedReminders || 0,
+        failed_reminders: data.summary?.failed_reminders || data.failedReminders || 0,
+        pending_reminders: data.summary?.pending_reminders || data.pendingReminders || 0,
+      },
+      recent_activity: data.recent_activity || data.recentActivity || [],
+      upcoming_reminders: data.upcoming_reminders || data.upcomingReminders || [],
+      recent_reminders: data.recent_reminders || data.recentReminders || [],
+    }
+
+    console.log('External report fetched successfully')
+    return report
+
+  } catch (error) {
+    console.error('Error fetching external report:', error)
+    return null
   }
 }
 

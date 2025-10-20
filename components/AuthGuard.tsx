@@ -24,7 +24,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   }, [user, loading, segments, router])
 
   if (loading) {
-    return null // or a loading screen
+    return null 
   }
 
   return <>{children}</>

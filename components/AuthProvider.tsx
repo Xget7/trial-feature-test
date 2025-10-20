@@ -52,7 +52,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Initialize with mock data
           console.log('Initializing with mock manager ID:', mockUser.id)
           await initializeManagerAndUsers(
-            mockUser.id, // 'mock-manager-1' or 'mock-manager-2'
+            mockUser.id, 
             'mock-token-' + mockUser.id
           )
 
@@ -79,7 +79,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           await initializeManagerAndUsers(storeTestingUser.id, 'mock-token-' + storeTestingUser.id)
 
           setLoading(false)
-          return // Exit early
+          return 
         }
 
         // Step 3: No mock user - set up real Supabase authentication
@@ -142,7 +142,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await AsyncStorage.removeItem('ato-mock-user')
       await AsyncStorage.removeItem('ato-store-testing-user')
 
-      // Sign out from Supabase
       await supabase.auth.signOut()
 
       setUser(null)

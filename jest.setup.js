@@ -1,4 +1,3 @@
-// Define __DEV__ for React Native
 global.__DEV__ = true
 
 // Mock React Native Platform

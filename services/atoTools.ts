@@ -129,10 +129,8 @@ async function selectUserForManager(
       }
     }
 
-    console.log('[ATO TOOLS] ⚠️ No matching user found for name, falling back to selected user')
   }
 
-  // If no name provided or no match found, use selected user
   const selectedUser = managedUsers.find(user => user.isSelected)
   
   if (selectedUser) {
@@ -143,9 +141,7 @@ async function selectUserForManager(
     }
   }
 
-  // If no selected user, use the first one
   const firstUser = managedUsers[0]
-  console.log(`[ATO TOOLS] ✅ Using first managed user: ${firstUser.name} ${firstUser.surname}`)
   
   return {
     userId: firstUser.id,
@@ -255,7 +251,6 @@ async function getUserReport(
   console.log(`[ATO TOOLS] 📊 Getting report for manager: ${managerId}, user: ${userName || 'auto-select'}`)
 
   try {
-    // Select the appropriate user
     const userSelection = await selectUserForManager(managerId, userName)
     
     if (!userSelection) {
@@ -306,7 +301,6 @@ async function createReminder(
   console.log(`[ATO TOOLS] 📝 Creating reminder for manager: ${managerId}, user: ${userName || 'auto-select'}`)
 
   try {
-    // Select the appropriate user
     const userSelection = await selectUserForManager(managerId, userName)
     
     if (!userSelection) {

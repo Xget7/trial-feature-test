@@ -15,7 +15,6 @@ export const AtoAssistantIcon: React.FC<AtoAssistantIconProps> = ({
   color = 'white',
   style,
 }) => {
-  // Calculate aspect ratio from original SVG (270x268)
   const aspectRatio = 270 / 268
   const calculatedHeight = width / aspectRatio
 

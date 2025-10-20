@@ -131,7 +131,6 @@ export const addEventListener = (event: EventType, listener: EventListener): (()
   eventListeners.get(event)?.add(listener)
   console.log(`[TTS] Added ${event} listener`)
 
-  // Return cleanup function
   return () => {
     eventListeners.get(event)?.delete(listener)
     console.log(`[TTS] Removed ${event} listener`)
