@@ -23,7 +23,7 @@ export default function AuthCallbackScreen() {
         }
 
         if (data.session) {
-          router.replace('/dashboard')
+          router.replace('/')
         } else {
           setError('No se pudo validar la sesión')
           setShowErrorModal(true)

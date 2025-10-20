@@ -171,4 +171,8 @@ export const es: Translations = {
       for: 'para',
     },
   },
+  splash: {
+    tagline: 'Cuidá mejor a quien más querés',
+    loading: 'Preparando todo...',
+  },
 }

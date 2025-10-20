@@ -33,7 +33,9 @@ function RootLayoutContent() {
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style="auto" />
-      <AtoAssistantSheet visible={isAssistantVisible} onClose={hideAssistant} />
+      {isAssistantVisible && (
+        <AtoAssistantSheet visible={true} onClose={hideAssistant} />
+      )}
     </ThemeProvider>
   )
 }

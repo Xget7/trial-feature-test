@@ -1,6 +1,6 @@
 import React from 'react'
 import { View, Text, StyleSheet, SafeAreaView } from 'react-native'
-import { BottomNavigation } from '../components/BottomNavigation'
+import { BottomNavigation } from '../../components/BottomNavigation'
 
 export default function ProfileScreen() {
   return (

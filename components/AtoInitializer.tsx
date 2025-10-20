@@ -14,6 +14,8 @@ export const AtoInitializer: React.FC<{ children: React.ReactNode }> = ({ childr
   const isInitializingRef = useRef(false)
 
   useEffect(() => {
+    let isCancelled = false
+
     const initAto = async () => {
       // Don't initialize while auth is loading
       if (authLoading) {
@@ -43,18 +45,34 @@ export const AtoInitializer: React.FC<{ children: React.ReactNode }> = ({ childr
 
       try {
         await initializeManagerAndUsers(user.id, session.access_token)
-        initializedUserIdRef.current = user.id
-        console.log('[AtoInitializer] Initialization complete for user:', user.id)
+
+        // Only update if not cancelled
+        if (!isCancelled) {
+          initializedUserIdRef.current = user.id
+          console.log('[AtoInitializer] Initialization complete for user:', user.id)
+        } else {
+          console.log('[AtoInitializer] Initialization cancelled (component unmounted)')
+        }
       } catch (error) {
-        console.error('[AtoInitializer] Initialization failed:', error)
-        initializedUserIdRef.current = null
+        if (!isCancelled) {
+          console.error('[AtoInitializer] Initialization failed:', error)
+          initializedUserIdRef.current = null
+        }
       } finally {
-        isInitializingRef.current = false
+        if (!isCancelled) {
+          isInitializingRef.current = false
+        }
       }
     }
 
     initAto()
-  }, [user?.id, session?.access_token, authLoading])
+
+    // Cleanup function
+    return () => {
+      isCancelled = true
+      isInitializingRef.current = false
+    }
+  }, [user?.id, session?.access_token, authLoading, initializeManagerAndUsers])
 
   return <>{children}</>
 }

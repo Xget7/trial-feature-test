@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef, useCallback } from 'react'
 import { atoApi } from '@/lib/atoApi'
 import type { UserWithRelation } from '@/lib/atoApi'
 import { useAto } from './AtoContext'
@@ -30,8 +30,11 @@ export const SelectedUserProvider: React.FC<{ children: ReactNode }> = ({ childr
   const [allUsers, setAllUsers] = useState<(UserWithRelation & { isSelected: boolean })[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  
+  const initializedManagerIdRef = useRef<string | null>(null)
+  const isInitializingRef = useRef(false)
 
-  const refreshSelectedUser = async () => {
+  const refreshSelectedUser = useCallback(async () => {
     if (!currentManager?.id) {
       setSelectedUserState(null)
       setIsLoading(false)
@@ -41,12 +44,9 @@ export const SelectedUserProvider: React.FC<{ children: ReactNode }> = ({ childr
     try {
       setIsLoading(true)
       setError(null)
-      console.log('[SelectedUser] Fetching selected user for manager:', currentManager.id)
 
       const user = await atoApi.getSelectedUser(currentManager.id)
       setSelectedUserState(user)
-
-      console.log('[SelectedUser] Selected user loaded:', user?.name || 'none')
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error loading selected user'
       setError(errorMessage)
@@ -54,43 +54,34 @@ export const SelectedUserProvider: React.FC<{ children: ReactNode }> = ({ childr
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [currentManager?.id])
 
-  const refreshAllUsers = async () => {
+  const refreshAllUsers = useCallback(async () => {
     if (!currentManager?.id) {
       setAllUsers([])
       return
     }
 
     try {
-      console.log('[SelectedUser] Fetching all managed users for manager:', currentManager.id)
-
       const users = await atoApi.getManagedUsersWithSelection(currentManager.id)
       setAllUsers(users)
-
-      console.log('[SelectedUser] Loaded', users.length, 'managed users')
     } catch (err) {
       console.error('[SelectedUser] Error refreshing all users:', err)
       setAllUsers([])
     }
-  }
+  }, [currentManager?.id])
 
-  const setSelectedUser = async (userId: string): Promise<boolean> => {
+  const setSelectedUser = useCallback(async (userId: string): Promise<boolean> => {
     if (!currentManager?.id) {
       console.error('[SelectedUser] No manager ID available')
       return false
     }
 
     try {
-      console.log('[SelectedUser] Setting selected user:', userId)
-
       const success = await atoApi.setSelectedUser(currentManager.id, userId)
 
       if (success) {
-        console.log('[SelectedUser] Successfully set selected user')
         await Promise.all([refreshSelectedUser(), refreshAllUsers()])
-      } else {
-        console.error('[SelectedUser] Failed to set selected user')
       }
 
       return success
@@ -98,18 +89,72 @@ export const SelectedUserProvider: React.FC<{ children: ReactNode }> = ({ childr
       console.error('[SelectedUser] Error setting selected user:', err)
       return false
     }
-  }
+  }, [currentManager?.id, refreshSelectedUser, refreshAllUsers])
 
   useEffect(() => {
-    if (currentManager?.id) {
-      console.log('[SelectedUser] Manager changed, initializing...')
-      refreshSelectedUser()
-      refreshAllUsers()
-    } else {
-      console.log('[SelectedUser] No manager, clearing state')
+    const managerId = currentManager?.id
+    let isCancelled = false
+
+    // No manager yet
+    if (!managerId) {
       setSelectedUserState(null)
       setAllUsers([])
       setIsLoading(false)
+      initializedManagerIdRef.current = null
+      return
+    }
+
+    // Already initializing
+    if (isInitializingRef.current) {
+      return
+    }
+
+    // Already initialized for this manager
+    if (initializedManagerIdRef.current === managerId) {
+      return
+    }
+
+    // Initialize
+    const initialize = async () => {
+      isInitializingRef.current = true
+      console.log('[SelectedUser] Initializing for manager:', managerId)
+
+      try {
+        const [user, users] = await Promise.all([
+          atoApi.getSelectedUser(managerId),
+          atoApi.getManagedUsersWithSelection(managerId)
+        ])
+
+        // Only update state if not cancelled
+        if (!isCancelled) {
+          setSelectedUserState(user)
+          setAllUsers(users)
+          initializedManagerIdRef.current = managerId
+
+          console.log('[SelectedUser] Initialization complete')
+        } else {
+          console.log('[SelectedUser] Initialization cancelled (component unmounted)')
+        }
+      } catch (error) {
+        if (!isCancelled) {
+          console.error('[SelectedUser] Initialization failed:', error)
+          setError(error instanceof Error ? error.message : 'Initialization failed')
+          initializedManagerIdRef.current = null
+        }
+      } finally {
+        if (!isCancelled) {
+          isInitializingRef.current = false
+          setIsLoading(false)
+        }
+      }
+    }
+
+    initialize()
+
+    // Cleanup function
+    return () => {
+      isCancelled = true
+      isInitializingRef.current = false
     }
   }, [currentManager?.id])
 

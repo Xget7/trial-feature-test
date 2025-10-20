@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
 import { atoApi, AtoManager, AtoUser, UserReport } from '../lib/atoApi'
 import { t } from '../lib/i18n'
 import { interpolate } from '../components/I18nProvider'
@@ -90,7 +90,7 @@ export const AtoProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } finally {
       setLoading(false)
     }
-  }, [selectedUser])
+  }, [selectedUser?.id])
 
   const getGreeting = useCallback((): string => {
     const now = new Date()
@@ -131,23 +131,25 @@ export const AtoProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, [selectedUser, userReport])
 
+  // Auto-refresh user report when selected user changes
   useEffect(() => {
-    if (selectedUser) {
+    if (selectedUser?.id) {
       refreshUserReport()
     } else {
       setUserReport(null)
     }
-  }, [selectedUser?.id])
+  }, [selectedUser?.id, refreshUserReport])
 
+  // Set up periodic refresh of user report (every 5 minutes)
   useEffect(() => {
-    if (!selectedUser) return
+    if (!selectedUser?.id) return
 
     const interval = setInterval(() => {
       refreshUserReport()
     }, 5 * 60 * 1000)
 
     return () => clearInterval(interval)
-  }, [selectedUser?.id])
+  }, [selectedUser?.id, refreshUserReport])
 
   const value: AtoContextType = {
     currentManager,

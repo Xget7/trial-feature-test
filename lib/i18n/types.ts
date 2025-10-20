@@ -167,6 +167,10 @@ export interface Translations {
       for: string
     }
   }
+  splash: {
+    tagline: string
+    loading: string
+  }
 }
 
 export type TranslationKey = keyof Translations

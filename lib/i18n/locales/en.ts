@@ -170,4 +170,8 @@ export const en: Translations = {
       for: 'for',
     },
   },
+  splash: {
+    tagline: 'Care better for those you love most',
+    loading: 'Getting ready...',
+  },
 }
