@@ -73,7 +73,7 @@ const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages'
  * @param options - Optional configuration object
  * @param options.systemPrompt - Custom system prompt (defaults to Ato Assistant prompt)
  * @param options.elderlyName - Name of the elderly person for personalization
- * @param options.userId - User ID for tool execution context (required for certain tools)
+ * @param options.managerId - Manager ID for tool execution context (REQUIRED for user-related tools)
  *
  * @returns Promise resolving to:
  *   - response: Claude's final text response
@@ -85,8 +85,8 @@ const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages'
  * @example
  * ```typescript
  * const result = await callClaudeAgent(
- *   [{ role: 'user', content: '¿Qué hora es?' }],
- *   { elderlyName: 'María', userId: 'user-123' }
+ *   [{ role: 'user', content: '¿Cómo está mi abuela?' }],
+ *   { elderlyName: 'María', managerId: 'manager-123' }
  * )
  * console.log(result.response)
  * console.log(result.toolsUsed)
@@ -97,7 +97,7 @@ export const callClaudeAgent = async (
   options?: {
     systemPrompt?: string
     elderlyName?: string
-    userId?: string
+    managerId?: string
   }
 ): Promise<CallClaudeResult> => {
   try {
@@ -164,16 +164,14 @@ export const callClaudeAgent = async (
         for (const toolUse of toolUses) {
           toolsUsed.push(toolUse.name)
 
-          const toolInput = { ...toolUse.input }
-          if (
-            (toolUse.name === 'get_user_report' || toolUse.name === 'create_reminder') &&
-            !toolInput.user_id &&
-            options?.userId
-          ) {
-            toolInput.user_id = options.userId
-          }
-
-          const result = await executeAtoTool(toolUse.name, toolInput)
+          // Execute tool with context
+          const result = await executeAtoTool(
+            toolUse.name,
+            toolUse.input,
+            {
+              managerId: options?.managerId
+            }
+          )
 
           if (result.shouldEndConversation) {
             shouldEndConversation = true

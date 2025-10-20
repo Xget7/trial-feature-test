@@ -256,11 +256,11 @@ describe('ClaudeAgent', () => {
 
       ;(formatToolResult as jest.Mock).mockReturnValueOnce('Report data')
 
-      await callClaudeAgent(mockMessages, { userId: 'user-123' })
+      await callClaudeAgent(mockMessages, { managerId: 'user-123' })
 
       expect(executeAtoTool).toHaveBeenCalledWith('get_user_report', {
-        user_id: 'user-123',
-      })
+       managerId: "user-123",
+     })
     })
 
     it('shouldUseCustomSystemPrompt', async () => {
@@ -366,7 +366,7 @@ describe('ClaudeAgent', () => {
         .mockReturnValueOnce('Time result')
         .mockReturnValueOnce('Report result')
 
-      const result = await callClaudeAgent(mockMessages, { userId: 'user-123' })
+      const result = await callClaudeAgent(mockMessages, { managerId: 'user-123' })
 
       expect(result.toolsUsed).toEqual(['get_current_time', 'get_user_report'])
       expect(executeAtoTool).toHaveBeenCalledTimes(2)

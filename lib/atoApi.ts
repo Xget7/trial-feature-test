@@ -45,6 +45,9 @@ export interface UserReport {
     total_reminders: number
     active_reminders: number
     completed_reminders: number
+    // New optional fields - won't break existing code
+    failed_reminders?: number
+    pending_reminders?: number
   }
   recent_activity: {
     type: string
@@ -55,6 +58,19 @@ export interface UserReport {
     id: string
     task: string
     scheduled_for: string
+    status?: 'PENDING' | 'SENT' | 'COMPLETED' | 'FAILED'
+    created_at?: string
+    last_sent_at?: string | null
+    attempts?: number
+  }[]
+  recent_reminders?: {
+    id: string
+    task: string
+    scheduled_for: string
+    status: 'PENDING' | 'SENT' | 'COMPLETED' | 'FAILED'
+    created_at: string
+    last_sent_at: string | null
+    attempts: number
   }[]
 }
 
@@ -461,9 +477,9 @@ class AtoApiService {
     return data
   }
 
-  async getUserReport(userId: string): Promise<UserReport> {
+ async getUserReport(userId: string): Promise<UserReport> {
   if (USE_MOCK_DATA) {
-    console.log('🎭 Mock mode: Getting report for user', userId)
+    console.log('Mock mode: Getting report for user', userId)
     await new Promise(resolve => setTimeout(resolve, 800))
 
     const report = MOCK_REPORTS[userId]
@@ -476,47 +492,138 @@ class AtoApiService {
           total_reminders: 0,
           active_reminders: 0,
           completed_reminders: 0,
+          failed_reminders: 0,
+          pending_reminders: 0,
         },
         recent_activity: [],
         upcoming_reminders: [],
+        recent_reminders: [],
       }
     }
     return report
   }
 
-  console.log('🔐 Real mode: Getting report from Supabase for user', userId)
+  console.log('Real mode: Building comprehensive report from Supabase for user', userId)
   
-  const { data, error } = await supabase
-    .from('user_reports')
-    .select('*')
-    .eq('user_id', userId)
-    .order('report_generated_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+  try {
+    const now = new Date().toISOString()
 
-  const emptyReport: UserReport = {
-    user_id: userId,
-    report_generated_at: new Date().toISOString(),
-    summary: {
-      total_contacts: 0,
-      total_reminders: 0,
-      active_reminders: 0,
-      completed_reminders: 0,
-    },
-    recent_activity: [],
-    upcoming_reminders: [],
+    // Get all reminders for the user
+    const { data: allReminders, error: remindersError } = await supabase
+      .from('reminders')
+      .select('*')
+      .eq('user_id', userId)
+      .order('scheduled_for', { ascending: true })
+
+    if (remindersError) {
+      console.error('Error getting reminders:', remindersError)
+    }
+
+    const reminders = allReminders || []
+
+    // Get contacts count
+    const { count: contactsCount, error: contactsError } = await supabase
+      .from('contacts')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+
+    if (contactsError) {
+      console.error('Error counting contacts:', contactsError)
+    }
+
+    // Categorize reminders
+    const pendingReminders = reminders.filter(r => r.status === 'PENDING')
+    const completedReminders = reminders.filter(r => r.status === 'COMPLETED')
+    const failedReminders = reminders.filter(r => r.status === 'FAILED')
+    const activeReminders = reminders.filter(
+      r => r.status === 'PENDING' || r.status === 'SENT'
+    )
+
+    // Get upcoming reminders (pending and scheduled in the future)
+    const upcomingReminders = pendingReminders
+      .filter(r => new Date(r.scheduled_for) >= new Date())
+      .slice(0, 10)
+      .map(r => ({
+        id: r.id,
+        task: r.task,
+        scheduled_for: r.scheduled_for,
+        status: r.status,
+        created_at: r.created_at,
+        last_sent_at: r.last_sent_at,
+        attempts: r.attempts,
+      }))
+
+    // Get recent reminders (last 5 regardless of status)
+    const recentReminders = reminders
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, 5)
+      .map(r => ({
+        id: r.id,
+        task: r.task,
+        scheduled_for: r.scheduled_for,
+        status: r.status,
+        created_at: r.created_at,
+        last_sent_at: r.last_sent_at,
+        attempts: r.attempts,
+      }))
+
+    // Build recent activity from reminders
+    const recentActivity = reminders
+      .filter(r => r.last_sent_at || r.status === 'COMPLETED')
+      .sort((a, b) => {
+        const dateA = new Date(a.last_sent_at || a.updated_at || a.created_at)
+        const dateB = new Date(b.last_sent_at || b.updated_at || b.created_at)
+        return dateB.getTime() - dateA.getTime()
+      })
+      .slice(0, 10)
+      .map(r => ({
+        type: r.status === 'COMPLETED' ? 'reminder_completed' : 'reminder_sent',
+        timestamp: r.last_sent_at || r.updated_at || r.created_at,
+        description: `Reminder: ${r.task}`,
+      }))
+
+    const report: UserReport = {
+      user_id: userId,
+      report_generated_at: now,
+      summary: {
+        total_contacts: contactsCount || 0,
+        total_reminders: reminders.length,
+        active_reminders: activeReminders.length,
+        completed_reminders: completedReminders.length,
+        failed_reminders: failedReminders.length,
+        pending_reminders: pendingReminders.length,
+      },
+      recent_activity: recentActivity,
+      upcoming_reminders: upcomingReminders,
+      recent_reminders: recentReminders,
+    }
+
+    console.log('Report built successfully:', {
+      total_reminders: report.summary.total_reminders,
+      upcoming: report.upcoming_reminders.length,
+      recent: report.recent_reminders?.length || 0,
+    })
+
+    return report
+  } catch (error) {
+    console.error('Error building user report:', error)
+    
+    return {
+      user_id: userId,
+      report_generated_at: new Date().toISOString(),
+      summary: {
+        total_contacts: 0,
+        total_reminders: 0,
+        active_reminders: 0,
+        completed_reminders: 0,
+        failed_reminders: 0,
+        pending_reminders: 0,
+      },
+      recent_activity: [],
+      upcoming_reminders: [],
+      recent_reminders: [],
+    }
   }
-
-  if (error) {
-    console.error('Error getting user report:', error)
-    return emptyReport
-  }
-
-  if (!data) {
-    return emptyReport
-  }
-
-  return data as UserReport
 }
 
   // Contacts API

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import * as voiceService from '../services/voiceService'
 import { initTTS, speak, stop, addEventListener, cleanup } from '../services/tts/hybridTTSService'
 import { callClaudeAgent, Message, ATO_SYSTEM_PROMPT } from '../services/claudeAgent'
-import { Platform } from 'react-native'
+
 
 const ELEVEN_LABS_API_KEY = process.env.EXPO_PUBLIC_ELEVEN_LABS_API_KEY
 
@@ -12,7 +12,7 @@ interface UseVoiceAssistantOptions {
   onError?: (error: Error) => void
   silenceTimeout?: number
   elderlyName?: string
-  userId?: string
+  managerId?: string
   elevenLabsApiKey?: string
   preferCloudTTS?: boolean
   useConversationalAI?: boolean
@@ -41,9 +41,9 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
     preferCloudTTS = true,
     useConversationalAI = true,
     elderlyName = 'the elderly person',
-    userId, // ✅ AGREGAR
+    managerId,
     voiceId = 'r3lotmx3BZETVvcKm6R6',
-    onConversationEnd, // ✅ AGREGAR
+    onConversationEnd,
   } = options
 
   const [state, setState] = useState<VoiceAssistantState>({
@@ -67,10 +67,9 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
   const isTextModeRef = useRef(false)
   const isStartingRef = useRef(false)
 
-  // Initialize TTS service once
   useEffect(() => {
     if (!ttsInitializedRef.current) {
-      console.log('[TTS] 🚀 Initializing Hybrid TTS')
+      console.log('[TTS] Initializing Hybrid TTS')
 
       const ttsConfig = elevenLabsApiKey
         ? {
@@ -85,16 +84,14 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
       const tts = initTTS(ttsConfig)
       ttsInitializedRef.current = true
 
-      console.log('[TTS] ✅ TTS initialized')
+      console.log('[TTS] TTS initialized')
     }
   }, [elevenLabsApiKey, preferCloudTTS])
 
-  // Keep conversation history ref in sync
   useEffect(() => {
     conversationHistoryRef.current = state.conversationHistory
   }, [state.conversationHistory])
 
-  // Process speech with optional TTS skip
   const handleSpeechResult = useCallback(
     async (spokenText: string, skipTTS: boolean = false) => {
       if (isProcessingRef.current || spokenText === lastProcessedTranscriptRef.current) {
@@ -102,7 +99,7 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
       }
 
       console.log(
-        '=== 🎯 PROCESSING:',
+        '=== PROCESSING:',
         spokenText,
         skipTTS ? '(TEXT MODE - NO TTS)' : '(VOICE MODE)'
       )
@@ -110,7 +107,6 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
       isProcessingRef.current = true
       lastProcessedTranscriptRef.current = spokenText
 
-      // Clear any active silence timer
       if (silenceTimerRef.current) {
         clearTimeout(silenceTimerRef.current)
         silenceTimerRef.current = null
@@ -129,18 +125,19 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
           { role: 'user', content: spokenText },
         ]
 
-        console.log('[AI] 🤖 Calling Claude...')
+        console.log('[AI] Calling Claude...')
+        
         const agentResult = await callClaudeAgent(newHistory, {
           systemPrompt,
           elderlyName: elderlyName,
-          userId: userId, // ✅ AGREGAR
+          managerId: managerId,
         })
-        const agentResponse = agentResult.response // ✅ CAMBIAR
-        console.log('[AI] ✅ Response:', agentResponse.substring(0, 50) + '...')
+        
+        const agentResponse = agentResult.response
+        console.log('[AI] Response:', agentResponse.substring(0, 50) + '...')
 
-        // ✅ AGREGAR: Log tools used
         if (agentResult.toolsUsed) {
-          console.log('[AI] 🔧 Tools used:', agentResult.toolsUsed.join(', '))
+          console.log('[AI] Tools used:', agentResult.toolsUsed.join(', '))
         }
 
         const updatedHistory: Message[] = [
@@ -155,9 +152,8 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
           isProcessing: false,
         }))
 
-        // Only play audio if not text mode
         if (!skipTTS) {
-          console.log('[TTS] 🔊 Playing audio response')
+          console.log('[TTS] Playing audio response')
           const speakOptions = useConversationalAI
             ? {
                 conversational: true,
@@ -172,11 +168,10 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
               }
 
           await speak(agentResponse, speakOptions)
-          console.log('[TTS] ✅ Finished speaking')
+          console.log('[TTS] Finished speaking')
 
-          // ✅ AGREGAR: Check if conversation should end
           if (agentResult.shouldEndConversation) {
-            console.log('[AI] 👋 Conversation should end')
+            console.log('[AI] Conversation should end')
             if (onConversationEnd) {
               setTimeout(() => {
                 onConversationEnd()
@@ -184,17 +179,17 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
             }
           }
         } else {
-          console.log('[TTS] 🔇 Skipping audio (text mode)')
+          console.log('[TTS] Skipping audio (text mode)')
 
           if (agentResult.shouldEndConversation && onConversationEnd) {
-            console.log('[AI] 👋 Conversation should end (text mode)')
+            console.log('[AI] Conversation should end (text mode)')
             setTimeout(() => {
               onConversationEnd()
             }, 500)
           }
         }
       } catch (error) {
-        console.error('=== ❌ ERROR ===', error)
+        console.error('=== ERROR ===', error)
         setState(prev => ({ ...prev, isProcessing: false }))
 
         const errorMessage = language.startsWith('es')
@@ -227,22 +222,20 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
       useConversationalAI,
       voiceId,
       elderlyName,
-      userId,
+      managerId,
       onConversationEnd,
     ]
   )
 
-  // Setup handlers ONCE on mount
-
   useEffect(() => {
     const initializeVoiceModule = async () => {
       try {
-        console.log('[VOICE ASSISTANT] 🚀 Initializing Voice module')
+        console.log('[VOICE ASSISTANT] Initializing Voice module')
 
         const initialized = await voiceService.initializeVoice()
 
         if (!initialized) {
-          console.error('[VOICE ASSISTANT] ❌ Voice module not available')
+          console.error('[VOICE ASSISTANT] Voice module not available')
           const error = new Error('Speech recognition not available on this device')
           if (onError) {
             onError(error)
@@ -250,9 +243,9 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
           return
         }
 
-        console.log('[VOICE ASSISTANT] ✅ Voice module ready')
+        console.log('[VOICE ASSISTANT] Voice module ready')
       } catch (error) {
-        console.error('[VOICE ASSISTANT] ❌ Failed to initialize Voice:', error)
+        console.error('[VOICE ASSISTANT] Failed to initialize Voice:', error)
         if (onError) {
           onError(error as Error)
         }
@@ -261,15 +254,16 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
 
     initializeVoiceModule()
   }, [onError])
+
   useEffect(() => {
     if (handlersSetupRef.current) return
 
-    console.log('[VOICE ASSISTANT] 🔧 Setting up handlers')
+    console.log('[VOICE ASSISTANT] Setting up handlers')
 
     voiceService.setLanguage(language)
     voiceService.setEventHandlers({
       onStart: () => {
-        console.log('[VOICE] ✅ Started listening')
+        console.log('[VOICE] Started listening')
         isStartingRef.current = false
         if (isMounted.current && !isTextModeRef.current) {
           setState(prev => ({ ...prev, isListening: true, transcript: '' }))
@@ -284,8 +278,8 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
       },
 
       onEnd: () => {
-        console.log('[VOICE] ✅ Stopped listening')
-        isStartingRef.current = false // ✅ Reset starting flag
+        console.log('[VOICE] Stopped listening')
+        isStartingRef.current = false
         if (isMounted.current) {
           setState(prev => ({ ...prev, isListening: false }))
           if (silenceTimerRef.current) {
@@ -300,7 +294,7 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
             !isProcessingRef.current &&
             !isTextModeRef.current
           ) {
-            console.log('[VOICE] 🚀 Processing final transcript')
+            console.log('[VOICE] Processing final transcript')
             handleSpeechResult(trimmedTranscript, false)
           }
         }
@@ -314,7 +308,7 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
             return
           }
 
-          console.log('[VOICE] 📝 Result:', newResult)
+          console.log('[VOICE] Result:', newResult)
 
           lastTranscriptRef.current = newResult
           setState(prev => ({
@@ -328,19 +322,19 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
           }
 
           if (newResult.length >= 5) {
-            console.log(`[VOICE] ⏱️ Starting ${DEFAULT_SILENCE_TIMEOUT}ms silence timer`)
+            console.log(`[VOICE] Starting ${DEFAULT_SILENCE_TIMEOUT}ms silence timer`)
             silenceTimerRef.current = setTimeout(async () => {
-              console.log('[VOICE] ⏰ Silence timeout reached')
+              console.log('[VOICE] Silence timeout reached')
               const currentTranscript = lastTranscriptRef.current.trim()
 
               if (currentTranscript && currentTranscript !== lastProcessedTranscriptRef.current) {
                 try {
-                  console.log('[VOICE] 🛑 Auto-stopping listening')
+                  console.log('[VOICE] Auto-stopping listening')
                   await voiceService.stopListening()
-                  console.log('[VOICE] 🚀 Processing on silence timeout')
+                  console.log('[VOICE] Processing on silence timeout')
                   handleSpeechResult(currentTranscript, false)
                 } catch (error) {
-                  console.error('[VOICE] ❌ Silence timeout error:', error)
+                  console.error('[VOICE] Silence timeout error:', error)
                 }
               } else {
                 await voiceService.stopListening()
@@ -373,7 +367,7 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
             errorStr.includes('5/') ||
             errorStr.includes('7/')
           ) {
-            console.log('[VOICE] ℹ️ No speech detected')
+            console.log('[VOICE] No speech detected')
             return
           }
 
@@ -388,20 +382,17 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
     })
 
     handlersSetupRef.current = true
-    console.log('[VOICE] ✅ Handlers configured')
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    console.log('[VOICE] Handlers configured')
   }, [])
 
-  // TTS event handlers
   useEffect(() => {
     const removeStart = addEventListener('start', () => {
-      console.log('[TTS] 🔊 Started speaking')
+      console.log('[TTS] Started speaking')
       if (isMounted.current) setState(prev => ({ ...prev, isSpeaking: true }))
     })
 
     const removeDone = addEventListener('done', () => {
-      console.log('[TTS] ✅ Finished speaking')
+      console.log('[TTS] Finished speaking')
       if (isMounted.current) setState(prev => ({ ...prev, isSpeaking: false }))
     })
 
@@ -411,7 +402,7 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
     })
 
     const removeError = addEventListener('error', () => {
-      console.log('[TTS]  TTS error')
+      console.log('[TTS] TTS error')
       if (isMounted.current) {
         setState(prev => ({ ...prev, isSpeaking: false }))
         if (onError) onError(new Error('TTS error'))
@@ -424,13 +415,11 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
       removeStopped()
       removeError()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
-      console.log('[VOICE] 🧹 Cleanup')
+      console.log('[VOICE] Cleanup')
       isMounted.current = false
       if (silenceTimerRef.current) {
         clearTimeout(silenceTimerRef.current)
@@ -439,27 +428,25 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
       voiceService.cleanup()
     }
   }, [])
+
   const startListening = useCallback(async () => {
-    // ✅ Prevent concurrent starts
     if (isStartingRef.current) {
-      console.log('[VOICE] ⚠️ Already starting, skipping...')
+      console.log('[VOICE] Already starting, skipping...')
       return
     }
 
-    // ✅ Prevent starting if already listening
     if (state.isListening) {
-      console.log('[VOICE] ⚠️ Already listening, skipping...')
+      console.log('[VOICE] Already listening, skipping...')
       return
     }
 
     try {
       isStartingRef.current = true
-      console.log('[VOICE]  Starting listening...')
+      console.log('[VOICE] Starting listening...')
 
       if (state.isSpeaking) {
-        console.log('[VOICE] 🛑 Stopping TTS first...')
+        console.log('[VOICE] Stopping TTS first...')
         await stop()
-        // Wait a bit for TTS to fully stop
         await new Promise(resolve => setTimeout(resolve, 100))
       }
 
@@ -474,10 +461,9 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
 
       await voiceService.startListening()
     } catch (error) {
-      console.error('[VOICE] ❌ Start error:', error)
+      console.error('[VOICE] Start error:', error)
       isStartingRef.current = false
 
-      // Don't report "already started" as an error
       const errorStr = String(error).toLowerCase()
       if (!errorStr.includes('already started') && onError) {
         onError(error as Error)
@@ -487,25 +473,25 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
 
   const stopListening = useCallback(async () => {
     try {
-      console.log('[VOICE] 🛑 Stopping listening...')
-      isStartingRef.current = false // ✅ Reset starting flag
+      console.log('[VOICE] Stopping listening...')
+      isStartingRef.current = false
       if (silenceTimerRef.current) {
         clearTimeout(silenceTimerRef.current)
         silenceTimerRef.current = null
       }
       await voiceService.stopListening()
     } catch (error) {
-      console.error('[VOICE] ❌ Stop error:', error)
+      console.error('[VOICE] Stop error:', error)
       if (onError) onError(error as Error)
     }
   }, [onError])
 
   const stopSpeaking = useCallback(async () => {
     try {
-      console.log('[VOICE] 🔇 Stopping speech...')
+      console.log('[VOICE] Stopping speech...')
       await stop()
     } catch (error) {
-      console.error('[VOICE] ❌ Error stopping TTS:', error)
+      console.error('[VOICE] Error stopping TTS:', error)
       if (onError) onError(error as Error)
     }
   }, [onError])
@@ -519,7 +505,7 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
     }))
     lastTranscriptRef.current = ''
     lastProcessedTranscriptRef.current = ''
-    console.log('[VOICE] 🗑️ Conversation cleared')
+    console.log('[VOICE] Conversation cleared')
   }, [])
 
   const sendTextMessage = useCallback(
@@ -528,7 +514,7 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
         isTextModeRef.current = true
 
         if (state.isListening) {
-          console.log('[VOICE] 🛑 Stopping listening for text mode')
+          console.log('[VOICE] Stopping listening for text mode')
           await stopListening()
         }
 

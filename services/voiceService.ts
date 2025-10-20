@@ -233,9 +233,9 @@ export const startListening = async (lang?: string): Promise<void> => {
       // Android-specific options
       ...(Platform.OS === 'android' && {
         androidIntentOptions: {
-          EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS: 1500,
-          EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS: 1500,
-          EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS: 1000,
+          EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS: 3500,
+          EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS: 2500,
+          EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS: 2000,
         },
       }),
     })

@@ -19,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { AnimatedAtoIcon } from './AnimatedAtoIcon'
 import { useVoiceAssistant } from '@/hooks/useVoiceAssistant'
 import { useSelectedUser } from '@/contexts/SelectedUserContext'
+import { useAto } from '@/contexts/AtoContext'
 
 const ELEVEN_LABS_API_KEY = process.env.EXPO_PUBLIC_ELEVEN_LABS_API_KEY
 const { height: SCREEN_HEIGHT } = Dimensions.get('window')
@@ -39,8 +40,8 @@ export const AtoAssistantSheet: React.FC<AtoAssistantSheetProps> = ({ visible, o
   const isMountedRef = useRef(true)
   const autoResumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const previousSpeakingRef = useRef(false)
-
-  const { selectedUser, isLoading: isLoadingUser } = useSelectedUser()
+  const { currentManager } = useAto()
+  const { selectedUser, isLoading: isLoadingUser,  } = useSelectedUser()
 
   const {
     isListening,
@@ -59,9 +60,8 @@ export const AtoAssistantSheet: React.FC<AtoAssistantSheetProps> = ({ visible, o
     useConversationalAI: true,
     voiceId: '1WXz8v08ntDcSTeVXMN2',
     elderlyName: selectedUser?.nickname || selectedUser?.name,
-    userId: selectedUser?.id,
-    onConversationEnd: () => {
-      // ✅ AGREGAR
+  managerId: currentManager?.id,
+      onConversationEnd: () => {
       console.log('[SHEET] Conversation ended by Ato')
       setTimeout(() => {
         onClose()
