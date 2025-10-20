@@ -494,35 +494,26 @@ class AtoApiService {
     .limit(1)
     .maybeSingle()
 
+  const emptyReport: UserReport = {
+    user_id: userId,
+    report_generated_at: new Date().toISOString(),
+    summary: {
+      total_contacts: 0,
+      total_reminders: 0,
+      active_reminders: 0,
+      completed_reminders: 0,
+    },
+    recent_activity: [],
+    upcoming_reminders: [],
+  }
+
   if (error) {
     console.error('Error getting user report:', error)
-    return {
-      user_id: userId,
-      report_generated_at: new Date().toISOString(),
-      summary: {
-        total_contacts: 0,
-        total_reminders: 0,
-        active_reminders: 0,
-        completed_reminders: 0,
-      },
-      recent_activity: [],
-      upcoming_reminders: [],
-    }
+    return emptyReport
   }
 
   if (!data) {
-    return {
-      user_id: userId,
-      report_generated_at: new Date().toISOString(),
-      summary: {
-        total_contacts: 0,
-        total_reminders: 0,
-        active_reminders: 0,
-        completed_reminders: 0,
-      },
-      recent_activity: [],
-      upcoming_reminders: [],
-    }
+    return emptyReport
   }
 
   return data as UserReport
