@@ -637,26 +637,50 @@ describe('AtoApiService', () => {
   })
 
   describe('getUserReport', () => {
-    const userId = 'user-1'
+  const userId = 'user-1'
 
-    it('should return default empty report structure', async () => {
-      const report = await atoApi.getUserReport(userId)
+  it('shouldReturnDefaultEmptyReportStructure', async () => {
+    const mockSelect = jest.fn().mockReturnThis()
+    const mockEq = jest.fn().mockReturnThis()
+    const mockOrder = jest.fn().mockReturnThis()
+    const mockLimit = jest.fn().mockReturnThis()
+    const mockMaybeSingle = jest.fn().mockResolvedValue({ data: null, error: null })
 
-      expect(report.user_id).toBe(userId)
-      expect(report.report_generated_at).toBeDefined()
-      expect(report.summary.total_contacts).toBe(0)
-      expect(report.summary.total_reminders).toBe(0)
-      expect(report.recent_activity).toEqual([])
-      expect(report.upcoming_reminders).toEqual([])
-    })
+    ;(supabase.from as jest.Mock).mockReturnValue({ select: mockSelect })
+    mockSelect.mockReturnValue({ eq: mockEq })
+    mockEq.mockReturnValue({ order: mockOrder })
+    mockOrder.mockReturnValue({ limit: mockLimit })
+    mockLimit.mockReturnValue({ maybeSingle: mockMaybeSingle })
 
-    it('should have valid ISO timestamp', async () => {
-      const report = await atoApi.getUserReport(userId)
+    const report = await atoApi.getUserReport(userId)
 
-      const timestamp = new Date(report.report_generated_at)
-      expect(timestamp.toISOString()).toBe(report.report_generated_at)
-    })
+    expect(report.user_id).toBe(userId)
+    expect(report.report_generated_at).toBeDefined()
+    expect(report.summary.total_contacts).toBe(0)
+    expect(report.summary.total_reminders).toBe(0)
+    expect(report.recent_activity).toEqual([])
+    expect(report.upcoming_reminders).toEqual([])
   })
+
+  it('shouldHaveValidISOTimestamp', async () => {
+    const mockSelect = jest.fn().mockReturnThis()
+    const mockEq = jest.fn().mockReturnThis()
+    const mockOrder = jest.fn().mockReturnThis()
+    const mockLimit = jest.fn().mockReturnThis()
+    const mockMaybeSingle = jest.fn().mockResolvedValue({ data: null, error: null })
+
+    ;(supabase.from as jest.Mock).mockReturnValue({ select: mockSelect })
+    mockSelect.mockReturnValue({ eq: mockEq })
+    mockEq.mockReturnValue({ order: mockOrder })
+    mockOrder.mockReturnValue({ limit: mockLimit })
+    mockLimit.mockReturnValue({ maybeSingle: mockMaybeSingle })
+
+    const report = await atoApi.getUserReport(userId)
+
+    const timestamp = new Date(report.report_generated_at)
+    expect(timestamp.toISOString()).toBe(report.report_generated_at)
+  })
+})
 
   describe('Integration Tests', () => {
     describe('User flow', () => {
