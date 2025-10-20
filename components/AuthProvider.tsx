@@ -2,7 +2,6 @@ import React, { createContext, useContext, useEffect, useState } from 'react'
 import { Session, User } from '@supabase/supabase-js'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { supabase } from '../lib/supabase'
-import { useAto } from '../contexts/AtoContext'
 
 interface AuthContextType {
   user: User | null
@@ -25,7 +24,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
-  const { initializeManagerAndUsers } = useAto()
 
   useEffect(() => {
     let authSubscription: any = null
@@ -36,7 +34,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const mockUserData = await AsyncStorage.getItem('ato-mock-user')
 
         if (mockUserData) {
-          console.log('🎭 Mock mode detected - loading mock user')
+          console.log('Mock mode detected - loading mock user')
           const mockUser = JSON.parse(mockUserData)
           console.log('Mock user ID:', mockUser.id)
 
@@ -49,22 +47,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             user: mockUser,
           } as Session)
 
-          // Initialize with mock data
-          console.log('Initializing with mock manager ID:', mockUser.id)
-          await initializeManagerAndUsers(
-            mockUser.id, 
-            'mock-token-' + mockUser.id
-          )
-
           setLoading(false)
-          return // Exit early - don't set up Supabase listeners
+          return
         }
 
         // Step 2: Check for legacy store testing user
         const storeTestingUserData = await AsyncStorage.getItem('ato-store-testing-user')
 
         if (storeTestingUserData) {
-          console.log('🧪 Store testing mode detected')
+          console.log('Store testing mode detected')
           const storeTestingUser = JSON.parse(storeTestingUserData)
 
           setUser(storeTestingUser)
@@ -76,14 +67,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             user: storeTestingUser,
           } as Session)
 
-          await initializeManagerAndUsers(storeTestingUser.id, 'mock-token-' + storeTestingUser.id)
-
           setLoading(false)
           return 
         }
 
         // Step 3: No mock user - set up real Supabase authentication
-        console.log('🔐 Real auth mode - setting up Supabase')
+        console.log('Real auth mode - setting up Supabase')
 
         // Set up Supabase auth listener
         const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -92,9 +81,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (session?.user) {
             setSession(session)
             setUser(session.user)
-
-            // Initialize manager and users data
-            await initializeManagerAndUsers(session.user.id, session.access_token)
           } else {
             setSession(null)
             setUser(null)
@@ -114,7 +100,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.log('Found existing Supabase session')
           setSession(initialSession)
           setUser(initialSession.user)
-          await initializeManagerAndUsers(initialSession.user.id, initialSession.access_token)
         }
 
         setLoading(false)
@@ -126,7 +111,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     initializeAuth()
 
-    // Cleanup
     return () => {
       if (authSubscription) {
         authSubscription.unsubscribe()
@@ -138,7 +122,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('Signing out...')
 
-      // Clear all mock user data
       await AsyncStorage.removeItem('ato-mock-user')
       await AsyncStorage.removeItem('ato-store-testing-user')
 

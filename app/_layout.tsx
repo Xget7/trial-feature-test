@@ -12,6 +12,7 @@ import { I18nProvider } from '@/components/I18nProvider'
 import { AssistantProvider, useAssistant } from '@/contexts/AssistantContext'
 import { AtoAssistantSheet } from '@/components/atoAssistant/AtoAssistantSheet'
 import { SelectedUserProvider } from '@/contexts/SelectedUserContext'
+import { AtoInitializer } from '@/components/AtoInitializer'
 
 function RootLayoutContent() {
   const colorScheme = useColorScheme()
@@ -20,13 +21,15 @@ function RootLayoutContent() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
+        {/* Main tabs - protected by AuthGuard */}
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        
+        {/* Auth routes */}
         <Stack.Screen name="login" options={{ headerShown: false }} />
-        <Stack.Screen name="dashboard" options={{ headerShown: false }} />
-        <Stack.Screen name="contacts" options={{ headerShown: false }} />
-        <Stack.Screen name="profile" options={{ headerShown: false }} />
-        <Stack.Screen name="settings" options={{ headerShown: false }} />
         <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
+        
+        {/* Other screens */}
+        <Stack.Screen name="settings" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style="auto" />
@@ -46,17 +49,19 @@ export default function RootLayout() {
 
   return (
     <I18nProvider>
-      <AtoProvider>
-        <AuthProvider>
-          <AuthGuard>
-            <SelectedUserProvider>
-              <AssistantProvider>
-                <RootLayoutContent />
-              </AssistantProvider>
-            </SelectedUserProvider>
-          </AuthGuard>
-        </AuthProvider>
-      </AtoProvider>
+      <AuthProvider>
+        <AtoProvider>
+          <AtoInitializer>
+            <AuthGuard>
+              <SelectedUserProvider>
+                <AssistantProvider>
+                  <RootLayoutContent />
+                </AssistantProvider>
+              </SelectedUserProvider>
+            </AuthGuard>
+          </AtoInitializer>
+        </AtoProvider>
+      </AuthProvider>
     </I18nProvider>
   )
 }
