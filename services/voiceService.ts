@@ -218,7 +218,13 @@ export const startListening = async (lang?: string): Promise<void> => {
     const selectedLang = lang || language
     console.log('[VOICE SERVICE] Starting recognition with language:', selectedLang)
 
-    // Start recognition
+    const androidOptions = {
+        EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS: 6000,
+        EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS: 3000,            
+        EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS: 3000,
+        EXTRA_PREFER_OFFLINE: false,
+    }
+
     ExpoSpeechRecognitionModule.start({
       lang: selectedLang,
       interimResults: true,
@@ -227,13 +233,8 @@ export const startListening = async (lang?: string): Promise<void> => {
       requiresOnDeviceRecognition: false,
       addsPunctuation: false,
       contextualStrings: [],
-      // Android-specific options
       ...(Platform.OS === 'android' && {
-        androidIntentOptions: {
-          EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS: 3500,
-          EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS: 2500,
-          EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS: 2000,
-        },
+        androidIntentOptions: androidOptions,
       }),
     })
 

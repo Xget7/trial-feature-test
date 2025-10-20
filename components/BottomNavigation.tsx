@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react'
+import React from 'react'
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native'
 import { useRouter, usePathname } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
@@ -27,7 +27,7 @@ interface TabItemProps extends Tab {
 }
 
 const TABS: Tab[] = [
-  { label: 'Inicio', iconName: 'home', route: '/dashboard' },
+  { label: 'Inicio', iconName: 'home', route: '/' },
   { label: 'Contactos', iconName: 'book', route: '/contacts' },
   { label: 'Chat', iconName: 'chatbubble', route: '/chat', isBig: true },
   { label: 'Perfil', iconName: 'person', route: '/profile' },
@@ -81,6 +81,7 @@ const TabBigItem: React.FC<TabItemProps> = ({ label, iconName, onPress, isActive
     </TouchableOpacity>
   )
 }
+
 export const BottomNavigation: React.FC = () => {
   const router = useRouter()
   const pathname = usePathname()
@@ -100,6 +101,14 @@ export const BottomNavigation: React.FC = () => {
   const firstHalf = regularTabs.slice(0, 2)
   const secondHalf = regularTabs.slice(2)
 
+  // Determina si estamos en la ruta principal (index)
+  const isActiveTab = (tabRoute: string) => {
+    if (tabRoute === '/') {
+      return pathname === '/' || pathname === '/index'
+    }
+    return pathname.startsWith(tabRoute)
+  }
+
   return (
     <View style={styles.container}>
       {bigTab && (
@@ -109,7 +118,7 @@ export const BottomNavigation: React.FC = () => {
             route={bigTab.route}
             label={bigTab.label}
             iconName={bigTab.iconName}
-            isActive={pathname === bigTab.route}
+            isActive={isActiveTab(bigTab.route)}
             onPress={() => handleTabPress(bigTab.route)}
           />
         </View>
@@ -121,7 +130,7 @@ export const BottomNavigation: React.FC = () => {
             <TabItem
               key={tab.route}
               {...tab}
-              isActive={pathname === tab.route}
+              isActive={isActiveTab(tab.route)}
               onPress={() => handleTabPress(tab.route)}
             />
           ))}
@@ -132,7 +141,7 @@ export const BottomNavigation: React.FC = () => {
             <TabItem
               key={tab.route}
               {...tab}
-              isActive={pathname === tab.route}
+              isActive={isActiveTab(tab.route)}
               onPress={() => handleTabPress(tab.route)}
             />
           ))}
@@ -154,7 +163,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    paddingBottom: 28,
+    paddingBottom: Platform.OS === 'ios' ? 28 : 20,
     paddingTop: 12,
     shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: -3 },
@@ -178,9 +187,9 @@ const styles = StyleSheet.create({
   },
   bigButtonWrapper: {
     position: 'absolute',
-    bottom: 60,
+    bottom: Platform.OS === 'ios' ? 60 : 52,
     left: '50%',
-    transform: [{ translateX: -37 }],
+    transform: [{ translateX: -35 }],
     zIndex: 20,
   },
   bigButtonSpacer: {
@@ -234,7 +243,7 @@ const styles = StyleSheet.create({
       ios: {
         shadowColor: COLORS.shadow,
         shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.8, 
+        shadowOpacity: 0.8,
         shadowRadius: 20,
       },
       android: {

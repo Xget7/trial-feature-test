@@ -1,11 +1,13 @@
 import React from 'react'
-import { SafeAreaView, ScrollView, StyleSheet, View } from 'react-native'
+import { SafeAreaView, ScrollView, StyleSheet, View, Platform } from 'react-native'
 import { useAto } from '@/contexts/AtoContext'
 import { DashboardHeader } from '@/components/DashboardHeader'
 import { UserStatusSection } from '@/components/UserStatusSection'
 import { RemindersSection } from '@/components/RemindersSection'
 import { ErrorDisplay, LoadingDisplay } from '@/components/ErrorBoundary'
 import { useI18n } from '@/components/I18nProvider'
+
+const BOTTOM_NAV_HEIGHT = Platform.OS === 'ios' ? 100 : 90
 
 export default function DashboardScreen() {
   const { currentManager, loading, error } = useAto()
@@ -22,12 +24,12 @@ export default function DashboardScreen() {
   if (error) {
     return (
       <SafeAreaView style={styles.container}>
-        <ErrorDisplay 
-          error={error} 
+        <ErrorDisplay
+          error={error}
           onRetry={() => {
             // Could trigger a refresh here if needed
-          }} 
-          onDismiss={() => {}} 
+          }}
+          onDismiss={() => {}}
         />
       </SafeAreaView>
     )
@@ -59,7 +61,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 20,
+    paddingBottom: BOTTOM_NAV_HEIGHT + 20, // Espacio para la navegación inferior
   },
   bottomSpacer: {
     height: 20,
