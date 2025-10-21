@@ -65,7 +65,7 @@ export const AtoAssistantSheet: React.FC<AtoAssistantSheetProps> = ({ visible, o
       console.log('[SHEET] Conversation ended by Ato')
       setTimeout(() => {
         onClose()
-      }, 1500)
+      }, 1000)
     },
     onError: error => {
       const errorStr = String(error).toLowerCase()
