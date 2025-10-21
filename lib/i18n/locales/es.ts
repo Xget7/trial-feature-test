@@ -105,10 +105,16 @@ export const es: Translations = {
   },
   settings: {
     title: 'Configuración',
+    subtitle: 'Configura las preferencias de la aplicación',
     language: 'Idioma',
     languages: {
       spanish: 'Español',
       english: 'English',
+    },
+    logout: {
+      title: 'Cerrar sesión',
+      message: '¿Estás seguro de que quieres cerrar sesión?',
+      confirm: 'Cerrar sesión',
     },
   },
   contacts: {
@@ -174,5 +180,14 @@ export const es: Translations = {
   splash: {
     tagline: 'Cuidá mejor a quien más querés',
     loading: 'Preparando todo...',
+  },
+  authCallback: {
+    validatingSession: 'Validando sesión...',
+    errorTitle: 'Error de autenticación',
+    sessionValidationError: 'Error al validar la sesión',
+    sessionNotValidated: 'No se pudo validar la sesión',
+    unexpectedError: 'Error inesperado',
+    defaultErrorMessage:
+      'Ocurrió un error al validar tu sesión. Por favor, intenta iniciar sesión nuevamente.',
   },
 }

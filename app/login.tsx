@@ -40,7 +40,7 @@ export default function LoginScreen() {
 
   useEffect(() => {
     if (user && !authLoading) {
-      router.replace('/dashboard')
+      router.replace('/')
     }
   }, [user, authLoading, router])
 
@@ -105,7 +105,7 @@ export default function LoginScreen() {
 
       await strategy.authenticate(email, otpCode)
 
-      router.replace('/dashboard')
+      router.replace('/')
     } catch (err) {
       setError(t('auth.errors.verificationError'))
       setShowErrorModal(true)

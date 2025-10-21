@@ -104,10 +104,16 @@ export const en: Translations = {
   },
   settings: {
     title: 'Settings',
+    subtitle: 'Configure your app preferences',
     language: 'Language',
     languages: {
       spanish: 'Español',
       english: 'English',
+    },
+    logout: {
+      title: 'Sign out',
+      message: 'Are you sure you want to sign out?',
+      confirm: 'Sign out',
     },
   },
   contacts: {
@@ -173,5 +179,14 @@ export const en: Translations = {
   splash: {
     tagline: 'Care better for those you love most',
     loading: 'Getting ready...',
+  },
+  authCallback: {
+    validatingSession: 'Validating session...',
+    errorTitle: 'Authentication error',
+    sessionValidationError: 'Error validating session',
+    sessionNotValidated: 'Could not validate session',
+    unexpectedError: 'Unexpected error',
+    defaultErrorMessage:
+      'An error occurred while validating your session. Please try logging in again.',
   },
 }

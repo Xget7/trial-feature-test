@@ -31,13 +31,13 @@ export default function SettingsScreen() {
   }
 
   const handleLogout = () => {
-    Alert.alert('Cerrar sesión', '¿Estás seguro de que quieres cerrar sesión?', [
+    Alert.alert(t('settings.logout.title'), t('settings.logout.message'), [
       {
-        text: 'Cancelar',
+        text: t('common.cancel'),
         style: 'cancel',
       },
       {
-        text: 'Cerrar sesión',
+        text: t('settings.logout.confirm'),
         style: 'destructive',
         onPress: signOut,
       },
@@ -49,7 +49,7 @@ export default function SettingsScreen() {
       <SafeAreaView style={styles.safeArea}>
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
           <Text style={styles.title}>{t('settings.title')}</Text>
-          <Text style={styles.subtitle}>Configura las preferencias de la aplicación</Text>
+          <Text style={styles.subtitle}>{t('settings.subtitle')}</Text>
 
           {/* Language Selection */}
           <View style={styles.section}>
@@ -87,7 +87,7 @@ export default function SettingsScreen() {
           </View>
 
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <Text style={styles.logoutButtonText}>Cerrar sesión</Text>
+            <Text style={styles.logoutButtonText}>{t('settings.logout.confirm')}</Text>
           </TouchableOpacity>
         </ScrollView>
       </SafeAreaView>

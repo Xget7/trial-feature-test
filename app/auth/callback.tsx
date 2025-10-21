@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react'
 import { ActivityIndicator, SafeAreaView, StyleSheet, Text, View } from 'react-native'
 import { supabase } from '../../lib/supabase'
 import ErrorModal from '../../components/ErrorModal'
+import { i18n } from '@/lib/i18n'
 
 export default function AuthCallbackScreen() {
   const router = useRouter()
@@ -17,7 +18,7 @@ export default function AuthCallbackScreen() {
 
         if (error) {
           console.error('Auth error:', error)
-          setError('Error al validar la sesión')
+          setError(i18n.t('authCallback.sessionValidationError'))
           setShowErrorModal(true)
           return
         }
@@ -25,12 +26,12 @@ export default function AuthCallbackScreen() {
         if (data.session) {
           router.replace('/')
         } else {
-          setError('No se pudo validar la sesión')
+          setError(i18n.t('authCallback.sessionNotValidated'))
           setShowErrorModal(true)
         }
       } catch (err) {
         console.error('Unexpected error:', err)
-        setError('Error inesperado')
+        setError(i18n.t('authCallback.unexpectedError'))
         setShowErrorModal(true)
       } finally {
         setLoading(false)
@@ -55,7 +56,9 @@ export default function AuthCallbackScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.content}>
           <ActivityIndicator size="large" color="#00D4FF" />
-          <Text style={styles.loadingText}>Validando sesión...</Text>
+          <Text style={styles.loadingText}>
+            {i18n.t('authCallback.validatingSession')}
+          </Text>
         </View>
       </SafeAreaView>
     )
@@ -65,11 +68,8 @@ export default function AuthCallbackScreen() {
     <SafeAreaView style={styles.container}>
       <ErrorModal
         visible={showErrorModal}
-        title="Error de autenticación"
-        message={
-          error ||
-          'Ocurrió un error al validar tu sesión. Por favor, intenta iniciar sesión nuevamente.'
-        }
+        title={i18n.t('authCallback.errorTitle')}
+        message={error || i18n.t('authCallback.defaultErrorMessage')}
         onRetry={handleRetry}
         onClose={handleCloseModal}
       />

@@ -61,7 +61,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: BOTTOM_NAV_HEIGHT + 20, // Espacio para la navegación inferior
+    paddingBottom: BOTTOM_NAV_HEIGHT + 20,
   },
   bottomSpacer: {
     height: 20,

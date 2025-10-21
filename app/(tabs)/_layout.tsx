@@ -9,7 +9,7 @@ export default function TabLayout() {
       <Tabs
         screenOptions={{
           headerShown: false,
-          tabBarStyle: { display: 'none' }, // Oculta las tabs nativas
+          tabBarStyle: { display: 'none' }, 
         }}
       >
         <Tabs.Screen

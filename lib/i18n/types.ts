@@ -101,10 +101,16 @@ export interface Translations {
   }
   settings: {
     title: string
+    subtitle: string
     language: string
     languages: {
       spanish: string
       english: string
+    }
+    logout: {
+      title: string
+      message: string
+      confirm: string
     }
   }
   contacts: {
@@ -170,6 +176,14 @@ export interface Translations {
   splash: {
     tagline: string
     loading: string
+  }
+  authCallback: {
+    validatingSession: string
+    errorTitle: string
+    sessionValidationError: string
+    sessionNotValidated: string
+    unexpectedError: string
+    defaultErrorMessage: string
   }
 }
 
