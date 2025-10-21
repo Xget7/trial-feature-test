@@ -162,7 +162,7 @@ describe('ClaudeAgent', () => {
 
       expect(result.response).toBe('Son las 15:30')
       expect(result.toolsUsed).toEqual(['get_current_time'])
-      expect(executeAtoTool).toHaveBeenCalledWith('get_current_time', {})
+      expect(executeAtoTool).toHaveBeenCalledWith('get_current_time', {}, {managerId: undefined})
       expect(formatToolResult).toHaveBeenCalledWith('get_current_time', {
         success: true,
         data: { time: '15:30' },
@@ -258,9 +258,7 @@ describe('ClaudeAgent', () => {
 
       await callClaudeAgent(mockMessages, { managerId: 'user-123' })
 
-      expect(executeAtoTool).toHaveBeenCalledWith('get_user_report', {
-       managerId: "user-123",
-     })
+      expect(executeAtoTool).toHaveBeenCalledWith('get_user_report', {}, { managerId: 'user-123' })
     })
 
     it('shouldUseCustomSystemPrompt', async () => {
