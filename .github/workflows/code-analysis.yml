@@ -24,9 +24,6 @@ jobs:
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
-      - name: Run postinstall
-        run: npm run postinstall
-
       - name: Check code formatting
         run: npm run format:check
         continue-on-error: true
@@ -84,9 +81,6 @@ jobs:
 
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
-
-      - name: Run postinstall
-        run: npm run postinstall
 
       - name: Expo prebuild
         run: npx expo prebuild --platform android --no-install
