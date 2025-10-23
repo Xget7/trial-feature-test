@@ -433,7 +433,6 @@ class AtoApiService {
     if (USE_MOCK_DATA) {
       console.log('[Mock mode] Getting reminders for user', userId)
       await new Promise(resolve => setTimeout(resolve, 600))
-      // Retornar array vacío por ahora en modo mock
       return []
     }
 

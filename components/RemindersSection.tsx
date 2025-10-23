@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert } from 'react-native'
 import { useAto } from '../contexts/AtoContext'
-import { Reminder } from '../lib/atoApi'
+import { Reminder, atoApi } from '../lib/atoApi'
 import { CreateReminderModal } from './CreateReminderModal'
 import { useI18n } from './I18nProvider'
 import { formatRelativeDate } from '../lib/i18n'
@@ -77,33 +77,39 @@ export const RemindersSection: React.FC = () => {
     try {
       setLoading(true)
 
-      // Mock reminders data for development
-      const mockReminders: Reminder[] = [
-        {
-          id: 'reminder-1',
-          user_id: selectedUser.id,
-          task: t('reminders.sampleTasks.putWaterForMate'),
-          scheduled_for: new Date(Date.now() + 60 * 60 * 1000).toISOString(), // 1 hour from now
-          rrule: 'FREQ=DAILY;INTERVAL=1',
-          status: 'PENDING',
-          last_sent_at: null,
-          attempts: 0,
-          manager_id: currentManager.id,
-        },
-        {
-          id: 'reminder-2',
-          user_id: selectedUser.id,
-          task: t('reminders.sampleTasks.takeMedicine'),
-          scheduled_for: new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString(), // 3 hours from now
-          rrule: 'FREQ=DAILY;INTERVAL=1',
-          status: 'PENDING',
-          last_sent_at: null,
-          attempts: 0,
-          manager_id: currentManager.id,
-        },
-      ]
+      // Load reminders from Supabase
+      const realReminders = await atoApi.getRemindersForUser(selectedUser.id)
 
-      setReminders(mockReminders)
+      // If no real reminders exist, show mock data as examples
+      if (realReminders.length === 0) {
+        const mockReminders: Reminder[] = [
+          {
+            id: 'reminder-1',
+            user_id: selectedUser.id,
+            task: t('reminders.sampleTasks.putWaterForMate'),
+            scheduled_for: new Date(Date.now() + 60 * 60 * 1000).toISOString(), // 1 hour from now
+            rrule: 'FREQ=DAILY;INTERVAL=1',
+            status: 'PENDING',
+            last_sent_at: null,
+            attempts: 0,
+            manager_id: currentManager.id,
+          },
+          {
+            id: 'reminder-2',
+            user_id: selectedUser.id,
+            task: t('reminders.sampleTasks.takeMedicine'),
+            scheduled_for: new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString(), // 3 hours from now
+            rrule: 'FREQ=DAILY;INTERVAL=1',
+            status: 'PENDING',
+            last_sent_at: null,
+            attempts: 0,
+            manager_id: currentManager.id,
+          },
+        ]
+        setReminders(mockReminders)
+      } else {
+        setReminders(realReminders)
+      }
     } catch (error) {
       console.error('Error loading reminders:', error)
       setError(error instanceof Error ? error.message : t('common.error'))
@@ -116,21 +122,24 @@ export const RemindersSection: React.FC = () => {
     if (!selectedUser || !currentManager) return
 
     try {
-      // Mock creating a reminder
-      const newReminder: Reminder = {
-        id: `reminder-${Date.now()}`,
+      // Create reminder in Supabase
+      const newReminder = await atoApi.createReminder({
         user_id: selectedUser.id,
         manager_id: currentManager.id,
         task: reminderData.task || '',
         scheduled_for: reminderData.scheduled_for || new Date().toISOString(),
-        rrule: reminderData.rrule || '',
+        rrule: reminderData.rrule || null,
         status: 'PENDING',
         last_sent_at: null,
         attempts: 0,
+      })
+
+      if (!newReminder) {
+        throw new Error('Failed to create reminder')
       }
 
-      // Add to current reminders list
-      setReminders(prev => [...prev, newReminder])
+      // Reload reminders to get the latest from Supabase
+      await loadReminders()
       setShowCreateModal(false)
 
       Alert.alert(t('common.success'), t('reminders.createSuccess'))
