@@ -34,7 +34,7 @@ interface VoiceAssistantState {
 }
 
 // OPTIMIZED: Reduced from 1500ms to 800ms
-const DEFAULT_SILENCE_TIMEOUT = 800
+const DEFAULT_SILENCE_TIMEOUT = 400
 
 // Helper to create timing metric
 const startTiming = (): TimingMetric => ({
@@ -89,6 +89,7 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
   const ttsInitializedRef = useRef(false)
   const isTextModeRef = useRef(false)
   const isStartingRef = useRef(false)
+  const isSpeakingLoadingMessageRef = useRef(false)
 
   // Analytics refs
   const currentAnalyticsRef = useRef<PerformanceAnalytics | null>(null)
@@ -273,6 +274,7 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
           onToolStart: async (toolName, loadingMessage) => {
             if (loadingMessage && !skipTTS) {
               console.log(`[LOADING] Speaking: "${loadingMessage}"`)
+              isSpeakingLoadingMessageRef.current = true
               try {
                 await speak(loadingMessage, {
                   model: 'eleven_turbo_v2_5' as const,
@@ -281,6 +283,9 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
                 })
               } catch (error) {
                 console.error('[LOADING] Error speaking loading message:', error)
+              } finally {
+                isSpeakingLoadingMessageRef.current = false
+                console.log('[LOADING] Finished speaking loading message')
               }
             }
           }
@@ -319,6 +324,22 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
 
         if (!skipTTS) {
           console.log('[TTS] Playing audio response')
+
+          // Wait for loading message to finish speaking before starting the response
+          if (isSpeakingLoadingMessageRef.current) {
+            console.log('[TTS] Waiting for loading message to finish...')
+            const startWait = Date.now()
+            while (isSpeakingLoadingMessageRef.current) {
+              await new Promise(resolve => setTimeout(resolve, 100))
+              // Safety timeout after 10 seconds
+              if (Date.now() - startWait > 10000) {
+                console.warn('[TTS] Loading message timeout exceeded, proceeding anyway')
+                isSpeakingLoadingMessageRef.current = false
+                break
+              }
+            }
+            console.log('[TTS] Loading message finished, proceeding with response')
+          }
 
           // Start TTS timing
           if (currentAnalyticsRef.current) {

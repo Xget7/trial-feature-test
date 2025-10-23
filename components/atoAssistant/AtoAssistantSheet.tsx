@@ -16,10 +16,11 @@ import { BlurView } from 'expo-blur'
 import { Audio } from 'expo-av'
 import * as Linking from 'expo-linking'
 import { Ionicons } from '@expo/vector-icons'
-import { AnimatedAtoIcon } from './AnimatedAtoIcon'
+import { RippleAtoIcon } from './RippleAtoIcon'
 import { useVoiceAssistant } from '@/hooks/useVoiceAssistant'
 import { useSelectedUser } from '@/contexts/SelectedUserContext'
 import { useAto } from '@/contexts/AtoContext'
+import { useI18n } from '@/components/I18nProvider'
 
 const ELEVEN_LABS_API_KEY = process.env.EXPO_PUBLIC_ELEVEN_LABS_API_KEY
 const { height: SCREEN_HEIGHT } = Dimensions.get('window')
@@ -44,13 +45,16 @@ export const AtoAssistantSheet: React.FC<AtoAssistantSheetProps> = ({ visible, o
   const [hasPermissions, setHasPermissions] = useState(false)
   const [isRequestingPermissions, setIsRequestingPermissions] = useState(false)
   const [isTextMode, setIsTextMode] = useState(false)
+  const [showingResponse, setShowingResponse] = useState(false)
 
   const hasAutoStartedRef = useRef(false)
   const isMountedRef = useRef(true)
   const autoResumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const previousSpeakingRef = useRef(false)
+  const responseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const { currentManager } = useAto()
   const { selectedUser, isLoading: isLoadingUser,  } = useSelectedUser()
+  const { t } = useI18n()
 
   const language = 'es-ES' // TODO: Get from user preferences or device locale
 
@@ -113,12 +117,12 @@ export const AtoAssistantSheet: React.FC<AtoAssistantSheetProps> = ({ visible, o
       if (status !== 'granted') {
         if (!canAskAgain) {
           Alert.alert(
-            'Permiso requerido',
-            'El acceso al micrófono está bloqueado. Habilítalo en ajustes.',
+            t('atoAssistant.permissions.blockedTitle'),
+            t('atoAssistant.permissions.blocked'),
             [
-              { text: 'Cancelar', style: 'cancel' },
+              { text: t('common.cancel'), style: 'cancel' },
               {
-                text: 'Abrir Ajustes',
+                text: t('atoAssistant.permissions.openSettings'),
                 onPress: () => {
                   if (Platform.OS === 'ios') {
                     Linking.openURL('app-settings:')
@@ -131,8 +135,8 @@ export const AtoAssistantSheet: React.FC<AtoAssistantSheetProps> = ({ visible, o
           )
         } else {
           Alert.alert(
-            'Permiso requerido',
-            'Necesitamos acceso al micrófono para que puedas hablar con Ato'
+            t('atoAssistant.permissions.blockedTitle'),
+            t('atoAssistant.permissions.needMic')
           )
         }
         setHasPermissions(false)
@@ -248,8 +252,25 @@ export const AtoAssistantSheet: React.FC<AtoAssistantSheetProps> = ({ visible, o
       if (autoResumeTimerRef.current) {
         clearTimeout(autoResumeTimerRef.current)
       }
+      if (responseTimeoutRef.current) {
+        clearTimeout(responseTimeoutRef.current)
+      }
     }
   }, [])
+
+  // Show response when it changes and hide when user starts listening again
+  useEffect(() => {
+    if (response && response.trim()) {
+      setShowingResponse(true)
+    }
+  }, [response])
+
+  // Hide response when user starts listening (responding)
+  useEffect(() => {
+    if (isListening && showingResponse) {
+      setShowingResponse(false)
+    }
+  }, [isListening, showingResponse])
 
   const handleSwitchToVoiceMode = async () => {
     console.log('[SHEET] Switching to voice mode')
@@ -288,23 +309,23 @@ export const AtoAssistantSheet: React.FC<AtoAssistantSheetProps> = ({ visible, o
 
   const getStatusInfo = () => {
     if (isSpeaking) {
-      return { text: 'Hablando...', icon: 'volume-high' as const }
+      return { text: t('atoAssistant.status.speaking'), icon: 'volume-high' as const }
     }
     if (isProcessing) {
-      return { text: 'Procesando...', icon: 'sync' as const }
+      return { text: t('atoAssistant.status.processing'), icon: 'sync' as const }
     }
     if (isListening) {
-      return { text: 'Escuchando...', icon: 'mic' as const }
+      return { text: t('atoAssistant.status.listening'), icon: 'mic' as const }
     }
     return null
   }
 
   const getGreeting = () => {
-    if (isLoadingUser) return 'Soy Ato, un momento...'
-    if (!selectedUser) return 'Soy Ato, ¿en qué puedo ayudarte?'
+    if (isLoadingUser) return t('atoAssistant.greeting.loading')
+    if (!selectedUser) return t('atoAssistant.greeting.noUser')
 
     const name = selectedUser.nickname || selectedUser.name
-    return `Soy Ato, ¿hablamos de ${name}?`
+    return t('atoAssistant.greeting.withUser', { name })
   }
 
   const statusInfo = getStatusInfo()
@@ -317,10 +338,10 @@ export const AtoAssistantSheet: React.FC<AtoAssistantSheetProps> = ({ visible, o
     ? '#F59E0B'
     : '#3CCEF5'
 
-  const getIconVariant = () => {
-    if (isSpeaking) return 'pulse'
-    if (isListening) return 'ripple'
-    return 'breathe'
+  const getIconVariant = (): 'listening' | 'speaking' | 'idle' => {
+    if (isListening) return 'listening'
+    if (isSpeaking) return 'speaking'
+    return 'idle'
   }
 
   return (
@@ -362,21 +383,21 @@ export const AtoAssistantSheet: React.FC<AtoAssistantSheetProps> = ({ visible, o
                   <View style={styles.permissionWarning}>
                     <Ionicons name="warning" size={20} color="#F59E0B" />
                     <Text style={styles.permissionText}>
-                      Necesitamos permiso para usar el micrófono
+                      {t('atoAssistant.permissions.required')}
                     </Text>
                     <TouchableOpacity style={styles.permissionButton} onPress={requestPermissions}>
-                      <Text style={styles.permissionButtonText}>Dar permiso</Text>
+                      <Text style={styles.permissionButtonText}>{t('atoAssistant.permissions.givePermission')}</Text>
                     </TouchableOpacity>
                   </View>
                 )}
 
                 <View style={styles.voiceSection}>
                   <View style={styles.avatarContainer}>
-                    <AnimatedAtoIcon
+                    <RippleAtoIcon
                       width={140}
                       height={140}
                       color={iconColor}
-                      isActive={isListening || isSpeaking}
+                      isActive={isListening || isSpeaking || isProcessing}
                       variant={getIconVariant()}
                     />
                   </View>
@@ -388,16 +409,16 @@ export const AtoAssistantSheet: React.FC<AtoAssistantSheetProps> = ({ visible, o
                     </View>
                   )}
 
-                  {transcript && !conversationHistory.some(msg => msg.content === transcript) && (
+                  {transcript && (isProcessing || !conversationHistory.some(msg => msg.content === transcript)) && (
                     <View style={styles.transcriptBox}>
-                      <Text style={styles.transcriptLabel}>Dijiste:</Text>
+                      <Text style={styles.transcriptLabel}>{t('atoAssistant.youSaid')}</Text>
                       <Text style={styles.transcriptText}>{transcript}</Text>
                     </View>
                   )}
 
-                  {response && !conversationHistory.some(msg => msg.content === response) && (
+                  {response && showingResponse && (
                     <View style={styles.responseBox}>
-                      <Text style={styles.responseLabel}>Ato responde:</Text>
+                      <Text style={styles.responseLabel}>{t('atoAssistant.atoResponds')}</Text>
                       <Text style={styles.responseText}>{response}</Text>
                     </View>
                   )}
@@ -444,7 +465,7 @@ export const AtoAssistantSheet: React.FC<AtoAssistantSheetProps> = ({ visible, o
               onChangeText={setInputText}
               onFocus={handleInputFocus}
               onBlur={handleInputBlur}
-              placeholder="También podés escribirme..."
+              placeholder={t('atoAssistant.inputPlaceholder')}
               placeholderTextColor="#9CA3AF"
               multiline
               maxLength={500}
@@ -517,7 +538,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1F2937',
     textAlign: 'center',
-    marginTop: 46,
+    marginTop: 56,
     marginBottom: 8,
   },
   scrollContent: {
@@ -534,6 +555,7 @@ const styles = StyleSheet.create({
     color: '#1F2937',
     textAlign: 'center',
     marginBottom: 30,
+    marginTop: 30,
   },
   voiceSection: {
     alignItems: 'center',
@@ -566,38 +588,42 @@ const styles = StyleSheet.create({
   },
   transcriptBox: {
     width: '100%',
-    backgroundColor: '#FEF3C7',
+    backgroundColor: '#EFF6FF',
     padding: 16,
     borderRadius: 12,
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
   },
   transcriptLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#92400E',
+    color: '#1E40AF',
     marginBottom: 4,
   },
   transcriptText: {
     fontSize: 15,
-    color: '#78350F',
+    color: '#1E3A8A',
     lineHeight: 22,
   },
   responseBox: {
     width: '100%',
-    backgroundColor: '#E0F2FE',
+    backgroundColor: '#DBEAFE',
     padding: 16,
     borderRadius: 12,
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#93C5FD',
   },
   responseLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#075985',
+    color: '#1E40AF',
     marginBottom: 4,
   },
   responseText: {
     fontSize: 15,
-    color: '#0C4A6E',
+    color: '#1E3A8A',
     lineHeight: 22,
   },
   inputContainer: {

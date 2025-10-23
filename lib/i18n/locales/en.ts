@@ -237,4 +237,27 @@ export const en: Translations = {
     },
     mission: 'MISSION: Improve quality of life by providing independence, safety, and companionship.',
   },
+  atoAssistant: {
+    youSaid: 'You said:',
+    atoResponds: 'Ato responds:',
+    inputPlaceholder: 'You can also write to me...',
+    greeting: {
+      loading: 'I\'m Ato, one moment...',
+      noUser: 'I\'m Ato, how can I help you?',
+      withUser: 'I\'m Ato, shall we talk about {name}?',
+    },
+    status: {
+      listening: 'Listening...',
+      processing: 'Processing...',
+      speaking: 'Speaking...',
+    },
+    permissions: {
+      required: 'We need permission to use the microphone',
+      givePermission: 'Give permission',
+      blocked: 'Microphone access is blocked. Enable it in settings.',
+      blockedTitle: 'Permission required',
+      openSettings: 'Open Settings',
+      needMic: 'We need microphone access so you can talk to Ato',
+    },
+  },
 }

@@ -238,4 +238,27 @@ export const es: Translations = {
     },
     mission: 'MISIÓN: Mejorar calidad de vida dando independencia, seguridad y compañía.',
   },
+  atoAssistant: {
+    youSaid: 'Dijiste:',
+    atoResponds: 'Ato responde:',
+    inputPlaceholder: 'También podés escribirme...',
+    greeting: {
+      loading: 'Soy Ato, un momento...',
+      noUser: 'Soy Ato, ¿en qué puedo ayudarte?',
+      withUser: 'Soy Ato, ¿hablamos de {name}?',
+    },
+    status: {
+      listening: 'Escuchando...',
+      processing: 'Procesando...',
+      speaking: 'Hablando...',
+    },
+    permissions: {
+      required: 'Necesitamos permiso para usar el micrófono',
+      givePermission: 'Dar permiso',
+      blocked: 'El acceso al micrófono está bloqueado. Habilítalo en ajustes.',
+      blockedTitle: 'Permiso requerido',
+      openSettings: 'Abrir Ajustes',
+      needMic: 'Necesitamos acceso al micrófono para que puedas hablar con Ato',
+    },
+  },
 }

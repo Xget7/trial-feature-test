@@ -16,6 +16,7 @@ interface RippleAtoIconProps {
   color?: string
   style?: ViewStyle
   isActive?: boolean
+  variant?: 'listening' | 'speaking' | 'idle'
 }
 
 const AnimatedView = Animated.createAnimatedComponent(View)
@@ -26,25 +27,51 @@ const RippleCircle: React.FC<{
   delay: number
   isActive: boolean
   color: string
-}> = ({ width, height, delay, isActive, color }) => {
+  variant: 'listening' | 'speaking' | 'idle'
+}> = ({ width, height, delay, isActive, color, variant }) => {
   const scale = useSharedValue(0.5)
   const opacity = useSharedValue(0)
 
   useEffect(() => {
     if (isActive) {
-      scale.value = withDelay(
-        delay,
-        withRepeat(withTiming(2, { duration: 2000, easing: Easing.out(Easing.ease) }), -1, false)
-      )
-      opacity.value = withDelay(
-        delay,
-        withRepeat(withTiming(0, { duration: 2000, easing: Easing.out(Easing.ease) }), -1, false)
-      )
+      // Listening: rápido y enérgico
+      if (variant === 'listening') {
+        scale.value = withDelay(
+          delay,
+          withRepeat(withTiming(2.2, { duration: 1200, easing: Easing.out(Easing.ease) }), -1, false)
+        )
+        opacity.value = withDelay(
+          delay,
+          withRepeat(withTiming(0, { duration: 1200, easing: Easing.out(Easing.ease) }), -1, false)
+        )
+      }
+      // Speaking: suave y continuo
+      else if (variant === 'speaking') {
+        scale.value = withDelay(
+          delay,
+          withRepeat(withTiming(1.8, { duration: 2500, easing: Easing.inOut(Easing.ease) }), -1, false)
+        )
+        opacity.value = withDelay(
+          delay,
+          withRepeat(withTiming(0, { duration: 2500, easing: Easing.inOut(Easing.ease) }), -1, false)
+        )
+      }
+      // Idle: respiración lenta
+      else {
+        scale.value = withDelay(
+          delay,
+          withRepeat(withTiming(1.5, { duration: 3000, easing: Easing.inOut(Easing.sin) }), -1, false)
+        )
+        opacity.value = withDelay(
+          delay,
+          withRepeat(withTiming(0, { duration: 3000, easing: Easing.inOut(Easing.sin) }), -1, false)
+        )
+      }
     } else {
       scale.value = withTiming(0.5, { duration: 300 })
       opacity.value = withTiming(0, { duration: 300 })
     }
-  }, [isActive])
+  }, [isActive, variant])
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -73,23 +100,49 @@ export const RippleAtoIcon: React.FC<RippleAtoIconProps> = ({
   color = '#3B82F6',
   style,
   isActive = false,
+  variant = 'idle',
 }) => {
   const scale = useSharedValue(1)
 
   useEffect(() => {
     if (isActive) {
-      scale.value = withRepeat(
-        withTiming(1.05, {
-          duration: 1000,
-          easing: Easing.inOut(Easing.ease),
-        }),
-        -1,
-        true
-      )
+      // Listening: pulsación más rápida y pronunciada
+      if (variant === 'listening') {
+        scale.value = withRepeat(
+          withTiming(1.08, {
+            duration: 600,
+            easing: Easing.inOut(Easing.ease),
+          }),
+          -1,
+          true
+        )
+      }
+      // Speaking: pulsación suave y lenta
+      else if (variant === 'speaking') {
+        scale.value = withRepeat(
+          withTiming(1.04, {
+            duration: 1500,
+            easing: Easing.inOut(Easing.ease),
+          }),
+          -1,
+          true
+        )
+      }
+      // Idle: respiración muy sutil
+      else {
+        scale.value = withRepeat(
+          withTiming(1.02, {
+            duration: 2000,
+            easing: Easing.inOut(Easing.sin),
+          }),
+          -1,
+          true
+        )
+      }
     } else {
       scale.value = withTiming(1, { duration: 300 })
     }
-  }, [isActive])
+  }, [isActive, variant])
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -101,9 +154,9 @@ export const RippleAtoIcon: React.FC<RippleAtoIconProps> = ({
   return (
     <View style={[styles.container, style]}>
       {/* Ripple waves */}
-      <RippleCircle width={width} height={height} delay={0} isActive={isActive} color={color} />
-      <RippleCircle width={width} height={height} delay={400} isActive={isActive} color={color} />
-      <RippleCircle width={width} height={height} delay={800} isActive={isActive} color={color} />
+      <RippleCircle width={width} height={height} delay={0} isActive={isActive} color={color} variant={variant} />
+      <RippleCircle width={width} height={height} delay={400} isActive={isActive} color={color} variant={variant} />
+      <RippleCircle width={width} height={height} delay={800} isActive={isActive} color={color} variant={variant} />
 
       {/* Main icon */}
       <AnimatedView style={[styles.mainIcon, animatedStyle]}>

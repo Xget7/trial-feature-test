@@ -232,6 +232,29 @@ export interface Translations {
     }
     mission: string
   }
+  atoAssistant: {
+    youSaid: string
+    atoResponds: string
+    inputPlaceholder: string
+    greeting: {
+      loading: string
+      noUser: string
+      withUser: string
+    }
+    status: {
+      listening: string
+      processing: string
+      speaking: string
+    }
+    permissions: {
+      required: string
+      givePermission: string
+      blocked: string
+      blockedTitle: string
+      openSettings: string
+      needMic: string
+    }
+  }
 }
 
 export type TranslationKey = keyof Translations
