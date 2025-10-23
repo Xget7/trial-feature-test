@@ -24,11 +24,11 @@ class ElevenLabsTTSService {
   private apiKey: string
   private sound: Audio.Sound | null = null
   private availableVoices: ElevenLabsVoice[] = []
-  private defaultModel: ElevenLabsModel = 'eleven_multilingual_v2' // v3 as default
+  private defaultModel: ElevenLabsModel = 'eleven_turbo_v2_5'
 
   constructor(apiKey: string, defaultModel?: ElevenLabsModel) {
     console.log('[ELEVENLABS] Creating ElevenLabs TTS Service')
-    console.log('[ELEVENLABS] Default model:', defaultModel || 'eleven_multilingual_v2')
+    console.log('[ELEVENLABS] Default model:', defaultModel || 'eleven_turbo_v2_5')
 
     this.apiKey = apiKey
     if (defaultModel) {

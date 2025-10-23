@@ -1,5 +1,5 @@
 import React from 'react'
-import { SafeAreaView, ScrollView, StyleSheet, View, Platform } from 'react-native'
+import { View, ScrollView, StyleSheet, Platform } from 'react-native'
 import { useAto } from '@/contexts/AtoContext'
 import { DashboardHeader } from '@/components/DashboardHeader'
 import { UserStatusSection } from '@/components/UserStatusSection'
@@ -15,15 +15,15 @@ export default function DashboardScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
         <LoadingDisplay message={t('dashboard.loadingDashboard')} />
-      </SafeAreaView>
+      </View>
     )
   }
 
   if (error) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
         <ErrorDisplay
           error={error}
           onRetry={() => {
@@ -31,12 +31,12 @@ export default function DashboardScreen() {
           }}
           onDismiss={() => {}}
         />
-      </SafeAreaView>
+      </View>
     )
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -47,14 +47,14 @@ export default function DashboardScreen() {
         <RemindersSection />
         <View style={styles.bottomSpacer} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#ffffffff',
   },
   scrollView: {
     flex: 1,

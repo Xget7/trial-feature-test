@@ -25,6 +25,15 @@ const ELEVEN_LABS_API_KEY = process.env.EXPO_PUBLIC_ELEVEN_LABS_API_KEY
 const { height: SCREEN_HEIGHT } = Dimensions.get('window')
 const AUTO_RESUME_DELAY = 1000
 
+const VOICE_IDS = {
+  'es-ES': '1WXz8v08ntDcSTeVXMN2', // Spanish voice
+  'en-US': 'pdoiqZrWfcY60KV2vt2G', // English voice
+} as const
+
+const getVoiceIdForLanguage = (language: string): string => {
+  return VOICE_IDS[language as keyof typeof VOICE_IDS] || VOICE_IDS['es-ES']
+}
+
 interface AtoAssistantSheetProps {
   visible: boolean
   onClose: () => void
@@ -43,6 +52,8 @@ export const AtoAssistantSheet: React.FC<AtoAssistantSheetProps> = ({ visible, o
   const { currentManager } = useAto()
   const { selectedUser, isLoading: isLoadingUser,  } = useSelectedUser()
 
+  const language = 'es-ES' // TODO: Get from user preferences or device locale
+
   const {
     isListening,
     isSpeaking,
@@ -54,11 +65,11 @@ export const AtoAssistantSheet: React.FC<AtoAssistantSheetProps> = ({ visible, o
     stopListening,
     sendTextMessage,
   } = useVoiceAssistant({
-    language: 'es-ES',
+    language,
     elevenLabsApiKey: ELEVEN_LABS_API_KEY,
     preferCloudTTS: true,
     useConversationalAI: true,
-    voiceId: '1WXz8v08ntDcSTeVXMN2',
+    voiceId: getVoiceIdForLanguage(language),
     elderlyName: selectedUser?.nickname || selectedUser?.name,
   managerId: currentManager?.id,
       onConversationEnd: () => {

@@ -1,6 +1,7 @@
 import React from 'react'
-import { View, Text, StyleSheet } from 'react-native'
+import { View, Text, StyleSheet, Platform } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
+import Constants from 'expo-constants'
 import { useAto } from '../contexts/AtoContext'
 import { useI18n } from './I18nProvider'
 
@@ -32,7 +33,7 @@ export const DashboardHeader: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: {
-    paddingTop: 60,
+    paddingTop: Platform.OS === 'ios' ? (Constants.statusBarHeight || 44) + 20 : 60,
     paddingBottom: 60,
     paddingHorizontal: 24,
     borderBottomLeftRadius: 32,

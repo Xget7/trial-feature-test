@@ -158,8 +158,8 @@ export const es: Translations = {
   tools: {
     error: 'Error',
     loading: {
-      getUserReport: 'Dame un segundo que consulto el estado en la base de datos',
-      createReminder: 'Perfecto, estoy creando el recordatorio',
+       getUserReport: 'Esperame un toque que busco la info',
+      createReminder: 'Dale, ya lo anoto',
       getCurrentTime: '',  // No loading needed, instant
       endConversation: '',  // No loading needed
     },

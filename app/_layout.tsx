@@ -32,7 +32,7 @@ function RootLayoutContent() {
         <Stack.Screen name="settings" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
       </Stack>
-      <StatusBar style="auto" />
+      <StatusBar style="light" translucent backgroundColor="transparent" />
       {isAssistantVisible && (
         <AtoAssistantSheet visible={true} onClose={hideAssistant} />
       )}

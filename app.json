@@ -13,7 +13,9 @@
       "bundleIdentifier": "com.anonymous.AtoApp",
       "infoPlist": {
         "NSSpeechRecognitionUsageDescription": "Esta aplicación necesita acceso al reconocimiento de voz para entender lo que dices a Ato.",
-        "NSMicrophoneUsageDescription": "Esta aplicación necesita acceso al micrófono para que puedas hablar con Ato, tu asistente de voz."
+        "NSMicrophoneUsageDescription": "Esta aplicación necesita acceso al micrófono para que puedas hablar con Ato, tu asistente de voz.",
+        "UIViewControllerBasedStatusBarAppearance": false,
+        "UIStatusBarStyle": "UIStatusBarStyleLightContent"
       }
     },
     "android": {
