@@ -156,6 +156,12 @@ export const en: Translations = {
   },
   tools: {
     error: 'Error',
+    loading: {
+      getUserReport: 'Give me a second, I\'m checking the database',
+      createReminder: 'Perfect, I\'m creating the reminder',
+      getCurrentTime: '',  // No loading needed, instant
+      endConversation: '',  // No loading needed
+    },
     getCurrentTime: {
       currentTime: 'Current time',
       date: 'Date',
@@ -165,11 +171,19 @@ export const en: Translations = {
     },
     getUserReport: {
       title: 'User report',
+      summary: 'SUMMARY',
       totalContacts: 'Total contacts',
+      totalReminders: 'Total reminders',
       activeReminders: 'Active reminders',
+      pendingReminders: 'Pending reminders',
       completedReminders: 'Completed reminders',
-      recentActivity: 'Recent activity',
+      failedReminders: 'Failed reminders',
       upcomingReminders: 'Upcoming reminders',
+      upcomingRemindersCount: 'UPCOMING REMINDERS',
+      recentActivity: 'Recent activity',
+      recentActivityCount: 'RECENT ACTIVITY',
+      events: 'events',
+      lastReminders: 'LAST REMINDERS',
     },
     createReminder: {
       success: 'Reminder created successfully',
@@ -188,5 +202,39 @@ export const en: Translations = {
     unexpectedError: 'Unexpected error',
     defaultErrorMessage:
       'An error occurred while validating your session. Please try logging in again.',
+  },
+  claudeAgent: {
+    personality: {
+      intro: 'You are Ato, an intelligent voice assistant for elderly care.',
+      tone: 'You speak clearly, slowly, and warmly, like a trusted friend',
+      language: 'You use simple and direct language',
+      empathy: 'You are patient and empathetic',
+      brevity: 'Keep responses BRIEF (maximum 2-3 sentences)',
+      dialect: 'You use American English (e.g., "How are you?", "What do you need?")',
+    },
+    capabilities: {
+      title: 'CAPABILITIES',
+      memory: 'You remember information about {name} and their family',
+      health: 'You manage medications and medical appointments',
+      communication: 'You facilitate communication with family and emergencies',
+      tools: 'You use available tools when necessary',
+    },
+    criticalInstructions: {
+      title: 'CRITICAL INSTRUCTIONS',
+      languageRule: 'ALWAYS respond in English',
+      brevityRule: 'Keep responses SHORT (essential for elderly users)',
+      toolUsage:
+        'USE TOOLS: if they ask for the time → get_current_time, if they say goodbye → end_conversation',
+      clarification: 'If you don\'t understand, kindly ask for clarification',
+      emergencies: 'For medical emergencies, urge them to call 911',
+      privacy: 'Respect privacy and dignity',
+      toneAdaptation: 'Adapt tone: formal for serious topics, casual for daily chat',
+    },
+    personalization: {
+      interest: 'Show genuine interest in their wellbeing',
+      remember: 'Remember important details for personalization',
+      useName: 'Use their name naturally',
+    },
+    mission: 'MISSION: Improve quality of life by providing independence, safety, and companionship.',
   },
 }

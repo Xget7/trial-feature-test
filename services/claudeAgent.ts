@@ -1,4 +1,5 @@
-import { ATO_TOOLS, executeAtoTool, formatToolResult, ToolResult } from './atoTools'
+import { ATO_TOOLS, executeAtoTool, formatToolResult, ToolResult, getToolLoadingMessage } from './atoTools'
+import { i18n } from '../lib/i18n'
 
 export interface Message {
   role: 'user' | 'assistant' | 'system'
@@ -9,58 +10,95 @@ export interface CallClaudeResult {
   response: string
   shouldEndConversation?: boolean
   toolsUsed?: string[]
+  loadingMessage?: string
 }
 
+/**
+ * Generate Ato system prompt using i18n translations
+ * @param elderlyName - Optional name of the elderly person for personalization
+ * @returns System prompt in the current locale
+ *
+ * Note: Currently hardcoded to Spanish ('es').
+ * To use dynamic locale, replace 'es' with getCurrentLanguage()
+ */
 export const generateAtoSystemPrompt = (elderlyName?: string): string => {
-  const name = elderlyName || 'the elderly person'
+  // 🔒 HARDCODED TO SPANISH - Change to getCurrentLanguage() for dynamic locale
+  const locale = 'es'
 
-  return `You are Ato Assistant, an intelligent and empathetic voice assistant specifically designed to care for elderly adults.
+  // Helper function to get translation in specific locale
+  const t = (key: string, params?: any): string => {
+    const previousLocale = i18n.locale
+    i18n.locale = locale
+    const translation = i18n.t(key, params)
+    i18n.locale = previousLocale
+    return translation
+  }
 
-Your personality:
-- You speak clearly, slowly, and warmly, like a trusted friend
-- You use simple and direct language, avoiding complicated terms
-- You are patient and understand that elderly people sometimes need you to repeat information
-- You show genuine empathy and concern for the user's wellbeing
-- You keep responses BRIEF and CONCISE (maximum 2-3 sentences) to facilitate auditory comprehension
-- You use Rioplatense Spanish with "vos" naturally (e.g., "¿cómo estás?", "¿qué necesitás?")
+  const name = elderlyName || (locale === 'es' ? 'el adulto mayor' : 'the elderly person')
 
-Your main capabilities:
-- Remember information about the elderly person and their family members/caregivers
-- Help manage medications: reminders for doses, schedules, dosages
-- Coordinate medical appointments and important activities
-- Facilitate communication with family, friends, and emergency services
-- Provide company and meaningful conversation
-- Answer health and wellness questions in a general way
-- Detect emergency situations and act quickly
-- Use available tools to get real-time information and perform actions
+  const personality = `${t('claudeAgent.personality.intro')}
 
-Critical instructions:
-- ALWAYS respond in Rioplatense Spanish
-- Keep responses SHORT - this is fundamental for elderly people who listen
-- USE TOOLS when needed: if someone asks the time, use get_current_time; if they say goodbye, use end_conversation
-- If you don't understand something, ask for clarification kindly
-- For medical emergencies or serious situations, urge them to contact 911 or a close family member
-- Respect the user's privacy and dignity at all times
-- Adapt your tone: more formal for serious topics, more casual and close for daily conversation
-- If the user seems confused or disoriented, stay calm and offer step-by-step help
+PERSONALIDAD:
+- ${t('claudeAgent.personality.tone')}
+- ${t('claudeAgent.personality.language')}
+- ${t('claudeAgent.personality.empathy')}
+- ${t('claudeAgent.personality.brevity')}
+- ${t('claudeAgent.personality.dialect')}`
 
-${
-  elderlyName
-    ? `About ${elderlyName}:
-- ${elderlyName} is the person you are helping to care for
-- Show genuine interest in ${elderlyName}'s wellbeing
-- Remember important details about ${elderlyName} to personalize the experience
-- Use ${elderlyName}'s name naturally in conversation to create a personal connection`
+  const capabilities = `
+${t('claudeAgent.capabilities.title')}:
+- ${t('claudeAgent.capabilities.memory', { name })}
+- ${t('claudeAgent.capabilities.health')}
+- ${t('claudeAgent.capabilities.communication')}
+- ${t('claudeAgent.capabilities.tools')}`
+
+  const criticalInstructions = `
+${t('claudeAgent.criticalInstructions.title')}:
+- ${t('claudeAgent.criticalInstructions.languageRule')}
+- ${t('claudeAgent.criticalInstructions.brevityRule')}
+- ${t('claudeAgent.criticalInstructions.toolUsage')}
+- ${t('claudeAgent.criticalInstructions.clarification')}
+- ${t('claudeAgent.criticalInstructions.emergencies')}
+- ${t('claudeAgent.criticalInstructions.privacy')}
+- ${t('claudeAgent.criticalInstructions.toneAdaptation')}`
+
+  const personalization = elderlyName
+    ? `
+Sobre ${elderlyName}:
+- ${t('claudeAgent.personalization.interest')}
+- ${t('claudeAgent.personalization.remember')}
+- ${t('claudeAgent.personalization.useName')}`
     : ''
-}
 
-Your mission: Improve the elderly person's quality of life by providing independence, safety, and companionship, while keeping family members and caregivers connected.`
+  const mission = `
+${t('claudeAgent.mission')}`
+
+  return `${personality}${capabilities}${criticalInstructions}${personalization}${mission}`
 }
 
 export const ATO_SYSTEM_PROMPT = generateAtoSystemPrompt()
 
 const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages'
 
+export type ClaudeModel = 
+  // ✅ ALIASES (Recomendado para desarrollo - siempre apunta a la última versión)
+  | 'claude-sonnet-4-5'              // Latest Sonnet 4.5
+  | 'claude-haiku-4-5'               // Latest Haiku 4.5  
+  | 'claude-opus-4-1'                // Latest Opus 4.1
+  | 'claude-sonnet-3-7'              // Latest Sonnet 3.7
+  
+  // ✅ Claude 3.5 (Stable)
+  | 'claude-3-5-sonnet-20241022'     
+  | 'claude-3-5-haiku-20241022'
+  | 'claude-3-5-sonnet-20240620'
+  
+  // ✅ Claude 3 (Legacy)
+  | 'claude-3-opus-20240229'
+  | 'claude-3-sonnet-20240229'
+  | 'claude-3-haiku-20240307'
+
+// ✅ USA EL ALIAS para desarrollo
+const DEFAULT_MODEL: ClaudeModel = 'claude-haiku-4-5'
 /**
  * Calls Claude AI API with tool-calling capabilities for the Ato Assistant.
  *
@@ -68,17 +106,21 @@ const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages'
  * - Process user messages with context-aware system prompts
  * - Execute available tools (reminders, user reports, time queries, etc.)
  * - Return conversational responses in Rioplatense Spanish
+ * - Provide loading messages while processing long-running tools
  *
  * @param messages - Array of conversation messages with role and content
  * @param options - Optional configuration object
  * @param options.systemPrompt - Custom system prompt (defaults to Ato Assistant prompt)
  * @param options.elderlyName - Name of the elderly person for personalization
  * @param options.managerId - Manager ID for tool execution context (REQUIRED for user-related tools)
+ * @param options.model - Claude model to use (default: claude-3-5-sonnet-20241022)
+ * @param options.onToolStart - Callback when a tool starts executing (for loading messages)
  *
  * @returns Promise resolving to:
  *   - response: Claude's final text response
  *   - shouldEndConversation: Boolean flag indicating if conversation should terminate
  *   - toolsUsed: Array of tool names that were executed during the call
+ *   - loadingMessage: Message to speak while processing (if tools are being executed)
  *
  * @throws Error if API key is missing or API request fails
  *
@@ -86,10 +128,17 @@ const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages'
  * ```typescript
  * const result = await callClaudeAgent(
  *   [{ role: 'user', content: '¿Cómo está mi abuela?' }],
- *   { elderlyName: 'María', managerId: 'manager-123' }
+ *   { 
+ *     elderlyName: 'María', 
+ *     managerId: 'manager-123',
+ *     model: 'claude-3-5-haiku-20241022',  // Use fastest model
+ *     onToolStart: (toolName) => {
+ *       console.log('Starting tool:', toolName)
+ *     }
+ *   }
  * )
  * console.log(result.response)
- * console.log(result.toolsUsed)
+ * console.log(result.loadingMessage)  // "Dame un segundo que consulto..."
  * ```
  */
 export const callClaudeAgent = async (
@@ -98,6 +147,8 @@ export const callClaudeAgent = async (
     systemPrompt?: string
     elderlyName?: string
     managerId?: string
+    model?: ClaudeModel
+    onToolStart?: (toolName: string, loadingMessage?: string) => void
   }
 ): Promise<CallClaudeResult> => {
   try {
@@ -108,9 +159,11 @@ export const callClaudeAgent = async (
     }
 
     const systemPrompt = options?.systemPrompt || generateAtoSystemPrompt(options?.elderlyName)
+    const model = options?.model || DEFAULT_MODEL
 
     let currentMessages = messages
       .filter(m => m.role !== 'system')
+      .slice(-6)  // Only keep recent context
       .map(m => ({
         role: m.role === 'assistant' ? 'assistant' : 'user',
         content: m.content,
@@ -119,6 +172,7 @@ export const callClaudeAgent = async (
     const toolsUsed: string[] = []
     let shouldEndConversation = false
     let finalResponse = ''
+    let loadingMessage: string | undefined
 
     let continueLoop = true
     let maxIterations = 5
@@ -128,13 +182,16 @@ export const callClaudeAgent = async (
       iterations++
 
       const requestBody = {
-        model: 'claude-sonnet-4-5-20250929',
-        max_tokens: 2024,
+        model,  
+        max_tokens: 1024,
         temperature: 0.8,
         system: systemPrompt,
         messages: currentMessages,
         tools: ATO_TOOLS,
       }
+
+      console.log(`[CLAUDE] Calling Claude (model: ${model}, iteration: ${iterations})`)
+      const startTime = Date.now()
 
       const response = await fetch(CLAUDE_API_URL, {
         method: 'POST',
@@ -145,6 +202,9 @@ export const callClaudeAgent = async (
         },
         body: JSON.stringify(requestBody),
       })
+
+      const elapsed = Date.now() - startTime
+      console.log(`[CLAUDE] API call took ${elapsed}ms`)
 
       if (!response.ok) {
         throw new Error(`Claude API error: ${response.status}`)
@@ -164,6 +224,19 @@ export const callClaudeAgent = async (
         for (const toolUse of toolUses) {
           toolsUsed.push(toolUse.name)
 
+          // Get and trigger loading message if available
+          const toolLoadingMsg = getToolLoadingMessage(toolUse.name)
+          if (toolLoadingMsg) {
+            loadingMessage = toolLoadingMsg
+            if (options?.onToolStart) {
+              options.onToolStart(toolUse.name, toolLoadingMsg)
+            }
+            console.log(`[CLAUDE] Loading message: "${toolLoadingMsg}"`)
+          }
+
+          console.log(`[CLAUDE] Executing tool: ${toolUse.name}`)
+          const toolStartTime = Date.now()
+
           // Execute tool with context
           const result = await executeAtoTool(
             toolUse.name,
@@ -172,6 +245,9 @@ export const callClaudeAgent = async (
               managerId: options?.managerId
             }
           )
+
+          const toolElapsed = Date.now() - toolStartTime
+          console.log(`[CLAUDE] Tool ${toolUse.name} took ${toolElapsed}ms`)
 
           if (result.shouldEndConversation) {
             shouldEndConversation = true
@@ -212,8 +288,12 @@ export const callClaudeAgent = async (
       response: finalResponse,
       shouldEndConversation,
       toolsUsed: toolsUsed.length > 0 ? toolsUsed : undefined,
+      loadingMessage,  
     }
   } catch (error) {
+    console.error('[CLAUDE] Error:', error)
     throw new Error('Error al procesar la solicitud con Claude')
   }
 }
+
+export { DEFAULT_MODEL }

@@ -158,7 +158,7 @@ class AtoApiService {
   // Managers API
   async getManagerById(managerId: string): Promise<AtoManager> {
     if (USE_MOCK_DATA) {
-      console.log('🎭 Mock mode: Getting manager', managerId)
+      console.log('[Mock mode] Getting manager', managerId)
       await new Promise(resolve => setTimeout(resolve, 500))
 
       const manager = MOCK_MANAGERS[managerId]
@@ -168,7 +168,7 @@ class AtoApiService {
       return manager
     }
 
-    console.log('🔐 Real mode: Getting manager from Supabase', managerId)
+    console.log('[Real mode] Getting manager from Supabase', managerId)
     const { data, error } = await supabase.from('managers').select('*').eq('id', managerId).single()
 
     if (error) {
@@ -186,7 +186,7 @@ class AtoApiService {
   // Users API
   async getUserById(userId: string): Promise<AtoUser> {
     if (USE_MOCK_DATA) {
-      console.log('🎭 Mock mode: Getting user', userId)
+      console.log('[Mock mode] Getting user', userId)
       await new Promise(resolve => setTimeout(resolve, 500))
 
       const user = MOCK_USERS[userId]
@@ -196,7 +196,7 @@ class AtoApiService {
       return user
     }
 
-    console.log('🔐 Real mode: Getting user from Supabase', userId)
+    console.log('[Real mode] Getting user from Supabase', userId)
     const { data, error } = await supabase.from('users').select('*').eq('id', userId).single()
 
     if (error) {
@@ -213,7 +213,7 @@ class AtoApiService {
 
   async getUsersByManagerId(managerId: string): Promise<AtoUser[]> {
     if (USE_MOCK_DATA) {
-      console.log('🎭 Mock mode: Getting users for manager', managerId)
+      console.log('[Mock mode] Getting users for manager', managerId)
       await new Promise(resolve => setTimeout(resolve, 600))
 
       const manager = MOCK_MANAGERS[managerId]
@@ -225,7 +225,7 @@ class AtoApiService {
       return user ? [user] : []
     }
 
-    console.log('🔐 Real mode: Getting users from Supabase for manager', managerId)
+    console.log('[Real mode] Getting users from Supabase for manager', managerId)
     const { data, error } = await supabase
       .from('manager_users')
       .select(
@@ -253,7 +253,7 @@ class AtoApiService {
   // Manager Selection API
   async getSelectedUser(managerId: string): Promise<UserWithRelation | null> {
     if (USE_MOCK_DATA) {
-      console.log('🎭 Mock mode: Getting selected user for manager', managerId)
+      console.log('[Mock mode] Getting selected user for manager', managerId)
       await new Promise(resolve => setTimeout(resolve, 400))
 
       const manager = MOCK_MANAGERS[managerId]
@@ -272,7 +272,7 @@ class AtoApiService {
       }
     }
 
-    console.log('🔐 Real mode: Getting selected user from Supabase', managerId)
+    console.log('[Real mode] Getting selected user from Supabase', managerId)
     try {
       const { data: selection, error: selectionError } = await supabase
         .from('manager_selected_users')
@@ -320,12 +320,12 @@ class AtoApiService {
 
   async setSelectedUser(managerId: string, userId: string): Promise<boolean> {
     if (USE_MOCK_DATA) {
-      console.log('🎭 Mock mode: Setting selected user', { managerId, userId })
+      console.log('[Mock mode] Setting selected user', { managerId, userId })
       await new Promise(resolve => setTimeout(resolve, 400))
       return true
     }
 
-    console.log('🔐 Real mode: Setting selected user in Supabase', { managerId, userId })
+    console.log('[Real mode] Setting selected user in Supabase', { managerId, userId })
     try {
       const { data: relation, error: relationError } = await supabase
         .from('manager_users')
@@ -355,7 +355,7 @@ class AtoApiService {
         return false
       }
 
-      console.log('✅ Selected user updated successfully')
+      console.log('Selected user updated successfully')
       return true
     } catch (error) {
       console.error('[AtoAPI] Error setting selected user:', error)
@@ -367,7 +367,7 @@ class AtoApiService {
     managerId: string
   ): Promise<(UserWithRelation & { isSelected: boolean })[]> {
     if (USE_MOCK_DATA) {
-      console.log('🎭 Mock mode: Getting managed users with selection', managerId)
+      console.log('[Mock mode] Getting managed users with selection', managerId)
       await new Promise(resolve => setTimeout(resolve, 500))
 
       const manager = MOCK_MANAGERS[managerId]
@@ -389,7 +389,7 @@ class AtoApiService {
       ]
     }
 
-    console.log('🔐 Real mode: Getting managed users with selection from Supabase', managerId)
+    console.log('[Real mode] Getting managed users with selection from Supabase', managerId)
     try {
       const { data: selection } = await supabase
         .from('manager_selected_users')
@@ -431,13 +431,13 @@ class AtoApiService {
   // NUEVO: Reminders API
   async getRemindersForUser(userId: string): Promise<Reminder[]> {
     if (USE_MOCK_DATA) {
-      console.log('🎭 Mock mode: Getting reminders for user', userId)
+      console.log('[Mock mode] Getting reminders for user', userId)
       await new Promise(resolve => setTimeout(resolve, 600))
       // Retornar array vacío por ahora en modo mock
       return []
     }
 
-    console.log('🔐 Real mode: Getting reminders from Supabase for user', userId)
+    console.log('[Real mode] Getting reminders from Supabase for user', userId)
     const { data, error } = await supabase
       .from('reminders')
       .select('*')
@@ -456,7 +456,7 @@ class AtoApiService {
     reminder: Omit<Reminder, 'id' | 'created_at' | 'updated_at'>
   ): Promise<Reminder | null> {
     if (USE_MOCK_DATA) {
-      console.log('🎭 Mock mode: Creating reminder')
+      console.log('[Mock mode] Creating reminder')
       await new Promise(resolve => setTimeout(resolve, 400))
       return {
         ...reminder,
@@ -466,7 +466,7 @@ class AtoApiService {
       }
     }
 
-    console.log('🔐 Real mode: Creating reminder in Supabase')
+    console.log('[Real mode] Creating reminder in Supabase')
     const { data, error } = await supabase.from('reminders').insert([reminder]).select().single()
 
     if (error) {
@@ -697,7 +697,7 @@ private async fetchExternalReport(managerId: string): Promise<UserReport | null>
   // Contacts API
   async getContactsForUser(userId: string): Promise<Contact[]> {
     if (USE_MOCK_DATA) {
-      console.log('🎭 Mock mode: Getting contacts for user', userId)
+      console.log('[Mock mode] Getting contacts for user', userId)
       await new Promise(resolve => setTimeout(resolve, 600))
 
       const { MOCK_CONTACTS } = await import('./atoApi.mocks')
@@ -705,7 +705,7 @@ private async fetchExternalReport(managerId: string): Promise<UserReport | null>
       return userContacts
     }
 
-    console.log('🔐 Real mode: Getting contacts from Supabase for user', userId)
+    console.log('[Real mode] Getting contacts from Supabase for user', userId)
     const { data, error } = await supabase.from('contacts').select('*').eq('user_id', userId)
 
     if (error) {

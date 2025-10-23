@@ -1,6 +1,5 @@
 import { PerformanceAnalytics } from "@/hooks/useVoiceAssistant"
 
-
 interface AnalyticsAggregation {
   totalInteractions: number
   averageTimes: {
@@ -114,23 +113,23 @@ class VoiceAssistantAnalytics {
 
     console.log('\n')
     console.log('╔═════════════════════════════════════════════════════════════════╗')
-    console.log('║          📊 VOICE ASSISTANT ANALYTICS SUMMARY                  ║')
+    console.log('║          VOICE ASSISTANT ANALYTICS SUMMARY                     ║')
     console.log('╠═════════════════════════════════════════════════════════════════╣')
     console.log(`║ Total Interactions: ${String(agg.totalInteractions).padEnd(44)} ║`)
     console.log(`║ Error Rate:         ${String(agg.errorRate).padEnd(44)}% ║`)
     console.log('╠═════════════════════════════════════════════════════════════════╣')
     console.log('║ AVERAGE TIMES:                                                  ║')
     console.log(
-      `║   🎤 Voice Recognition: ${String(agg.averageTimes.voiceRecognition).padEnd(39)}ms ║`
+      `║   Voice Recognition: ${String(agg.averageTimes.voiceRecognition).padEnd(42)}ms ║`
     )
     console.log(
-      `║   🤖 Claude Processing: ${String(agg.averageTimes.claudeProcessing).padEnd(39)}ms ║`
+      `║   Claude Processing: ${String(agg.averageTimes.claudeProcessing).padEnd(42)}ms ║`
     )
     console.log(
-      `║   🔊 TTS Generation:    ${String(agg.averageTimes.ttsGeneration).padEnd(39)}ms ║`
+      `║   TTS Generation:    ${String(agg.averageTimes.ttsGeneration).padEnd(42)}ms ║`
     )
     console.log(
-      `║   ⏱️  Total End-to-End: ${String(agg.averageTimes.totalEndToEnd).padEnd(39)}ms ║`
+      `║   Total End-to-End:  ${String(agg.averageTimes.totalEndToEnd).padEnd(42)}ms ║`
     )
     console.log('╠═════════════════════════════════════════════════════════════════╣')
     console.log('║ PERFORMANCE:                                                    ║')
@@ -220,10 +219,10 @@ class VoiceAssistantAnalytics {
         return false
       }
 
-      console.log('[ANALYTICS SERVICE] ✅ Analytics sent successfully')
+      console.log('[ANALYTICS SERVICE] Analytics sent successfully')
       return true
     } catch (error) {
-      console.error('[ANALYTICS SERVICE] ❌ Error sending analytics:', error)
+      console.error('[ANALYTICS SERVICE] Error sending analytics:', error)
       return false
     }
   }
@@ -282,7 +281,7 @@ class VoiceAssistantAnalytics {
   logStageStatistics(): void {
     console.log('\n')
     console.log('╔═════════════════════════════════════════════════════════════════╗')
-    console.log('║          📈 DETAILED STAGE STATISTICS                          ║')
+    console.log('║          DETAILED STAGE STATISTICS                             ║')
     console.log('╚═════════════════════════════════════════════════════════════════╝')
 
     const stages: Array<'voiceRecognition' | 'claudeProcessing' | 'ttsGeneration'> = [
@@ -295,10 +294,10 @@ class VoiceAssistantAnalytics {
       const stats = this.getStageStatistics(stage)
       const stageName =
         stage === 'voiceRecognition'
-          ? '🎤 Voice Recognition'
+          ? 'Voice Recognition'
           : stage === 'claudeProcessing'
-          ? '🤖 Claude Processing'
-          : '🔊 TTS Generation'
+          ? 'Claude Processing'
+          : 'TTS Generation'
 
       console.log(`\n${stageName}:`)
       console.log(`  Count:   ${stats.count}`)
@@ -314,7 +313,7 @@ class VoiceAssistantAnalytics {
   }
 }
 
-// Create singleton instance
+
 export const analyticsService = new VoiceAssistantAnalytics()
 
 // Export class for custom instances

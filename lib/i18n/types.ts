@@ -153,6 +153,12 @@ export interface Translations {
   }
   tools: {
     error: string
+    loading: {
+      getUserReport: string
+      createReminder: string
+      getCurrentTime: string
+      endConversation: string
+    }
     getCurrentTime: {
       currentTime: string
       date: string
@@ -162,11 +168,19 @@ export interface Translations {
     }
     getUserReport: {
       title: string
+      summary: string
       totalContacts: string
+      totalReminders: string
       activeReminders: string
+      pendingReminders: string
       completedReminders: string
-      recentActivity: string
+      failedReminders: string
       upcomingReminders: string
+      upcomingRemindersCount: string
+      recentActivity: string
+      recentActivityCount: string
+      events: string
+      lastReminders: string
     }
     createReminder: {
       success: string
@@ -184,6 +198,39 @@ export interface Translations {
     sessionNotValidated: string
     unexpectedError: string
     defaultErrorMessage: string
+  }
+  claudeAgent: {
+    personality: {
+      intro: string
+      tone: string
+      language: string
+      empathy: string
+      brevity: string
+      dialect: string
+    }
+    capabilities: {
+      title: string
+      memory: string
+      health: string
+      communication: string
+      tools: string
+    }
+    criticalInstructions: {
+      title: string
+      languageRule: string
+      brevityRule: string
+      toolUsage: string
+      clarification: string
+      emergencies: string
+      privacy: string
+      toneAdaptation: string
+    }
+    personalization: {
+      interest: string
+      remember: string
+      useName: string
+    }
+    mission: string
   }
 }
 

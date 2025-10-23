@@ -157,6 +157,12 @@ export const es: Translations = {
   },
   tools: {
     error: 'Error',
+    loading: {
+      getUserReport: 'Dame un segundo que consulto el estado en la base de datos',
+      createReminder: 'Perfecto, estoy creando el recordatorio',
+      getCurrentTime: '',  // No loading needed, instant
+      endConversation: '',  // No loading needed
+    },
     getCurrentTime: {
       currentTime: 'Hora actual',
       date: 'Fecha',
@@ -166,11 +172,19 @@ export const es: Translations = {
     },
     getUserReport: {
       title: 'Reporte del usuario',
-      totalContacts: 'Contactos totales',
+      summary: 'RESUMEN',
+      totalContacts: 'Total de contactos',
+      totalReminders: 'Total de recordatorios',
       activeReminders: 'Recordatorios activos',
+      pendingReminders: 'Recordatorios pendientes',
       completedReminders: 'Recordatorios completados',
-      recentActivity: 'Actividad reciente',
+      failedReminders: 'Recordatorios fallidos',
       upcomingReminders: 'Próximos recordatorios',
+      upcomingRemindersCount: 'PRÓXIMOS RECORDATORIOS',
+      recentActivity: 'Actividad reciente',
+      recentActivityCount: 'ACTIVIDAD RECIENTE',
+      events: 'eventos',
+      lastReminders: 'ÚLTIMOS RECORDATORIOS',
     },
     createReminder: {
       success: 'Recordatorio creado exitosamente',
@@ -189,5 +203,39 @@ export const es: Translations = {
     unexpectedError: 'Error inesperado',
     defaultErrorMessage:
       'Ocurrió un error al validar tu sesión. Por favor, intenta iniciar sesión nuevamente.',
+  },
+  claudeAgent: {
+    personality: {
+      intro: 'Eres Ato, asistente de voz inteligente para cuidar adultos mayores.',
+      tone: 'Hablás claro, lento y cálido, como amigo de confianza',
+      language: 'Usás lenguaje simple y directo',
+      empathy: 'Sos paciente y empático',
+      brevity: 'Respuestas BREVES (máximo 2-3 oraciones)',
+      dialect: 'Usás español rioplatense con "vos" (ej: "¿cómo estás?", "¿qué necesitás?")',
+    },
+    capabilities: {
+      title: 'CAPACIDADES',
+      memory: 'Recordás info sobre {name} y su familia',
+      health: 'Gestionás medicamentos y citas médicas',
+      communication: 'Facilitás comunicación con familia y emergencias',
+      tools: 'Usás herramientas disponibles cuando sea necesario',
+    },
+    criticalInstructions: {
+      title: 'INSTRUCCIONES CRÍTICAS',
+      languageRule: 'SIEMPRE respondé en español rioplatense',
+      brevityRule: 'Respuestas CORTAS (fundamental para adultos mayores)',
+      toolUsage:
+        'USA HERRAMIENTAS: si preguntan la hora → get_current_time, si dicen chau → end_conversation',
+      clarification: 'Si no entendés, pedí aclaración amablemente',
+      emergencies: 'Para emergencias médicas, urgí llamar al 911',
+      privacy: 'Respetá privacidad y dignidad',
+      toneAdaptation: 'Adaptá tono: formal para temas serios, casual para charla diaria',
+    },
+    personalization: {
+      interest: 'Mostrá interés genuino en su bienestar',
+      remember: 'Recordá detalles importantes para personalizar',
+      useName: 'Usá su nombre naturalmente',
+    },
+    mission: 'MISIÓN: Mejorar calidad de vida dando independencia, seguridad y compañía.',
   },
 }

@@ -7,7 +7,7 @@ type ElevenLabsVoice = {
   labels?: Record<string, string>
 }
 
-type ElevenLabsModel = 'eleven_v3' | 'eleven_multilingual_v2' | 'eleven_monolingual_v1'
+type ElevenLabsModel = 'eleven_turbo_v2_5' | 'eleven_v3' | 'eleven_multilingual_v2' | 'eleven_monolingual_v1'
 
 type TTSOptions = {
   voiceId?: string
@@ -27,7 +27,7 @@ class ElevenLabsTTSService {
   private defaultModel: ElevenLabsModel = 'eleven_multilingual_v2' // v3 as default
 
   constructor(apiKey: string, defaultModel?: ElevenLabsModel) {
-    console.log('[ELEVENLABS] 🏗️ Creating ElevenLabs TTS Service')
+    console.log('[ELEVENLABS] Creating ElevenLabs TTS Service')
     console.log('[ELEVENLABS] Default model:', defaultModel || 'eleven_multilingual_v2')
 
     this.apiKey = apiKey
@@ -39,16 +39,16 @@ class ElevenLabsTTSService {
 
   private async initAudio() {
     try {
-      console.log('[ELEVENLABS] 🎵 Initializing audio mode...')
+      console.log('[ELEVENLABS] Initializing audio mode...')
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: false,
         playsInSilentModeIOS: true,
         staysActiveInBackground: false,
         shouldDuckAndroid: true,
       })
-      console.log('[ELEVENLABS] ✅ Audio mode initialized')
+      console.log('[ELEVENLABS] Audio mode initialized')
     } catch (error) {
-      console.error('[ELEVENLABS] ❌ Error initializing audio:', error)
+      console.error('[ELEVENLABS] Error initializing audio:', error)
     }
   }
 
@@ -57,7 +57,7 @@ class ElevenLabsTTSService {
    */
   async fetchVoices(): Promise<ElevenLabsVoice[]> {
     try {
-      console.log('[ELEVENLABS] 🎤 Fetching available voices...')
+      console.log('[ELEVENLABS] Fetching available voices...')
       const response = await fetch('https://api.elevenlabs.io/v1/voices', {
         headers: {
           'xi-api-key': this.apiKey,
@@ -68,16 +68,16 @@ class ElevenLabsTTSService {
 
       if (!response.ok) {
         const errorText = await response.text()
-        console.error('[ELEVENLABS] ❌ Failed to fetch voices:', response.status, errorText)
+        console.error('[ELEVENLABS] Failed to fetch voices:', response.status, errorText)
         throw new Error(`Failed to fetch voices: ${response.status}`)
       }
 
       const data = await response.json()
       this.availableVoices = data.voices
-      console.log('[ELEVENLABS] ✅ Fetched', this.availableVoices.length, 'voices')
+      console.log('[ELEVENLABS] Fetched', this.availableVoices.length, 'voices')
       return this.availableVoices
     } catch (error) {
-      console.error('[ELEVENLABS] ❌ Error fetching voices:', error)
+      console.error('[ELEVENLABS] Error fetching voices:', error)
       return []
     }
   }
@@ -94,7 +94,7 @@ class ElevenLabsTTSService {
    */
   setDefaultModel(model: ElevenLabsModel): void {
     this.defaultModel = model
-    console.log(`[ELEVENLABS] ⚙️ Default model set to: ${model}`)
+    console.log(`[ELEVENLABS] Default model set to: ${model}`)
   }
 
   /**
@@ -112,7 +112,7 @@ class ElevenLabsTTSService {
     try {
       // Stop any currently playing sound
       if (this.sound) {
-        console.log('[ELEVENLABS] 🛑 Stopping previous sound')
+        console.log('[ELEVENLABS] Stopping previous sound')
         await this.stop()
       }
 
@@ -147,7 +147,7 @@ class ElevenLabsTTSService {
         body: JSON.stringify(requestBody),
       })
 
-      console.log('[ELEVENLABS] 📥 Response status:', response.status)
+      console.log('[ELEVENLABS] Response status:', response.status)
       console.log(
         '[ELEVENLABS] Response headers:',
         JSON.stringify(Object.fromEntries(response.headers), null, 2)
@@ -155,66 +155,45 @@ class ElevenLabsTTSService {
 
       if (!response.ok) {
         const errorText = await response.text()
-        console.error('[ELEVENLABS] ❌ API ERROR!')
-        console.error('[ELEVENLABS] Status:', response.status)
-        console.error('[ELEVENLABS] Error body:', errorText)
         throw new Error(`ElevenLabs API error: ${response.status} - ${errorText}`)
       }
 
-      console.log('[ELEVENLABS] ✅ API request successful!')
-      console.log('[ELEVENLABS] 📦 Getting audio blob...')
+      console.log('[ELEVENLABS] API request successful!')
+      console.log('[ELEVENLABS] Getting audio blob...')
 
       // Get audio data
-      const audioBlob = await response.blob()
-      console.log('[ELEVENLABS] Blob size:', audioBlob.size, 'bytes')
+      const audioData = await response.arrayBuffer()
+      console.log('[ELEVENLABS] Audio data size:', audioData.byteLength, 'bytes')
 
-      // Save to file system
       const fileUri = `${FileSystem.cacheDirectory}tts_${Date.now()}.mp3`
-      console.log('[ELEVENLABS] 💾 Saving to:', fileUri)
-
-      const reader = new FileReader()
-
-      await new Promise<void>((resolve, reject) => {
-        reader.onloadend = async () => {
-          try {
-            const base64Data = (reader.result as string).split(',')[1]
-            console.log('[ELEVENLABS] Base64 data length:', base64Data.length)
-
-            await FileSystem.writeAsStringAsync(fileUri, base64Data, {
-              encoding: FileSystem.EncodingType.Base64,
-            })
-            console.log('[ELEVENLABS] ✅ File saved successfully')
-            resolve()
-          } catch (error) {
-            console.error('[ELEVENLABS] ❌ Error saving file:', error)
-            reject(error)
-          }
-        }
-        reader.onerror = error => {
-          console.error('[ELEVENLABS] ❌ FileReader error:', error)
-          reject(error)
-        }
-        reader.readAsDataURL(audioBlob)
+      
+      const base64Audio = btoa(
+        new Uint8Array(audioData).reduce((data, byte) => data + String.fromCharCode(byte), '')
+      )
+      
+      await FileSystem.writeAsStringAsync(fileUri, base64Audio, {
+        encoding: FileSystem.EncodingType.Base64,
       })
 
-      // Load and play audio
-      console.log('[ELEVENLABS] 🎵 Loading audio file...')
-      const { sound } = await Audio.Sound.createAsync({ uri: fileUri }, { shouldPlay: true })
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: fileUri }, 
+        { shouldPlay: true }
+      )
 
       this.sound = sound
-      console.log('[ELEVENLABS] ✅ Audio loaded, playing...')
+      console.log('[ELEVENLABS] Audio loaded, playing...')
 
       return new Promise((resolve, reject) => {
         sound.setOnPlaybackStatusUpdate(status => {
           if (status.isLoaded) {
             if (status.didJustFinish) {
-              console.log('[ELEVENLABS] ✅ Playback finished')
+              console.log('[ELEVENLABS] Playback finished')
               console.log('╚════════════════════════════════════════╝')
               this.cleanup(fileUri)
               resolve()
             }
           } else if (status.error) {
-            console.error('[ELEVENLABS] ❌ Playback error:', status.error)
+            console.error('[ELEVENLABS] Playback error:', status.error)
             console.log('╚════════════════════════════════════════╝')
             this.cleanup(fileUri)
             reject(new Error(status.error))
@@ -222,7 +201,7 @@ class ElevenLabsTTSService {
         })
       })
     } catch (error) {
-      console.error('[ELEVENLABS] ❌ FATAL ERROR:', error)
+      console.error('[ELEVENLABS] FATAL ERROR:', error)
       console.error('[ELEVENLABS] Error type:', typeof error)
       console.error('[ELEVENLABS] Error details:', JSON.stringify(error, null, 2))
       console.log('╚════════════════════════════════════════╝')
@@ -234,7 +213,7 @@ class ElevenLabsTTSService {
    * Text-to-Speech with streaming (for faster response)
    */
   async speakStream(text: string, options: TTSOptions = {}): Promise<void> {
-    console.log('[ELEVENLABS] 🌊 Streaming not yet implemented, using standard TTS')
+    console.log('[ELEVENLABS] Streaming not yet implemented, using standard TTS')
     return this.speak(text, {
       ...options,
       optimizeStreamingLatency: 2,
@@ -251,7 +230,7 @@ class ElevenLabsTTSService {
       nextContext?: string
     } = {}
   ): Promise<void> {
-    console.log('[ELEVENLABS] 💬 Using conversational mode')
+    console.log('[ELEVENLABS] Using conversational mode')
     const { previousContext, nextContext, ...ttsOptions } = options
 
     return this.speak(text, {
@@ -266,13 +245,13 @@ class ElevenLabsTTSService {
   async stop(): Promise<void> {
     if (this.sound) {
       try {
-        console.log('[ELEVENLABS] 🛑 Stopping playback')
+        console.log('[ELEVENLABS] Stopping playback')
         await this.sound.stopAsync()
         await this.sound.unloadAsync()
         this.sound = null
-        console.log('[ELEVENLABS] ✅ Stopped')
+        console.log('[ELEVENLABS] Stopped')
       } catch (error) {
-        console.error('[ELEVENLABS] ❌ Error stopping:', error)
+        console.error('[ELEVENLABS] Error stopping:', error)
       }
     }
   }
@@ -284,9 +263,9 @@ class ElevenLabsTTSService {
     if (this.sound) {
       try {
         await this.sound.pauseAsync()
-        console.log('[ELEVENLABS] ⏸️ Paused')
+        console.log('[ELEVENLABS] Paused')
       } catch (error) {
-        console.error('[ELEVENLABS] ❌ Error pausing:', error)
+        console.error('[ELEVENLABS] Error pausing:', error)
       }
     }
   }
@@ -298,9 +277,9 @@ class ElevenLabsTTSService {
     if (this.sound) {
       try {
         await this.sound.playAsync()
-        console.log('[ELEVENLABS] ▶️ Resumed')
+        console.log('[ELEVENLABS] Resumed')
       } catch (error) {
-        console.error('[ELEVENLABS] ❌ Error resuming:', error)
+        console.error('[ELEVENLABS] Error resuming:', error)
       }
     }
   }
@@ -332,14 +311,14 @@ class ElevenLabsTTSService {
    */
   private async cleanup(fileUri: string): Promise<void> {
     try {
-      console.log('[ELEVENLABS] 🧹 Cleaning up file:', fileUri)
+      console.log('[ELEVENLABS] Cleaning up file:', fileUri)
       const fileInfo = await FileSystem.getInfoAsync(fileUri)
       if (fileInfo.exists) {
         await FileSystem.deleteAsync(fileUri, { idempotent: true })
-        console.log('[ELEVENLABS] ✅ File deleted')
+        console.log('[ELEVENLABS] File deleted')
       }
     } catch (error) {
-      console.error('[ELEVENLABS] ❌ Error cleaning up file:', error)
+      console.error('[ELEVENLABS] Error cleaning up file:', error)
     }
   }
 }

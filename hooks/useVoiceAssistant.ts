@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import * as voiceService from '../services/voiceService'
 import { initTTS, speak, stop, addEventListener, cleanup } from '../services/tts/hybridTTSService'
-import { callClaudeAgent, Message, ATO_SYSTEM_PROMPT } from '../services/claudeAgent'
+import { callClaudeAgent, Message, ATO_SYSTEM_PROMPT, ClaudeModel, DEFAULT_MODEL } from '../services/claudeAgent'
+import { PerformanceAnalytics, TimingMetric } from '@/types/analytics.types'
 
 
 const ELEVEN_LABS_API_KEY = process.env.EXPO_PUBLIC_ELEVEN_LABS_API_KEY
@@ -18,7 +19,8 @@ interface UseVoiceAssistantOptions {
   useConversationalAI?: boolean
   voiceId?: string
   onConversationEnd?: () => void
-  onAnalytics?: (analytics: PerformanceAnalytics) => void // New callback for analytics
+  onAnalytics?: (analytics: PerformanceAnalytics) => void  // NEW: Callback for analytics
+  claudeModel?: ClaudeModel  // NEW: Allow model selection
 }
 
 interface VoiceAssistantState {
@@ -31,32 +33,8 @@ interface VoiceAssistantState {
   ttsProvider?: 'elevenlabs' | 'native'
 }
 
-// Analytics interfaces
-interface PerformanceAnalytics {
-  sessionId: string
-  timestamp: number
-  stages: {
-    voiceRecognition: TimingMetric
-    claudeProcessing: TimingMetric
-    ttsGeneration: TimingMetric
-    totalEndToEnd: TimingMetric
-  }
-  metadata: {
-    transcriptLength: number
-    responseLength: number
-    ttsProvider?: string
-    toolsUsed?: string[]
-    hadError: boolean
-  }
-}
-
-interface TimingMetric {
-  startTime: number
-  endTime?: number
-  duration?: number
-}
-
-const DEFAULT_SILENCE_TIMEOUT = 1500
+// OPTIMIZED: Reduced from 1500ms to 800ms
+const DEFAULT_SILENCE_TIMEOUT = 800
 
 // Helper to create timing metric
 const startTiming = (): TimingMetric => ({
@@ -88,6 +66,7 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
     voiceId = 'r3lotmx3BZETVvcKm6R6',
     onConversationEnd,
     onAnalytics,
+    claudeModel = DEFAULT_MODEL,  
   } = options
 
   const [state, setState] = useState<VoiceAssistantState>({
@@ -131,14 +110,10 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
         hadError: false,
       },
     }
-    console.log(
-      '┌─────────────────────────────────────────────────────────────────┐'
-    )
-    console.log('│ 📊 PERFORMANCE ANALYTICS STARTED                               │')
+    console.log('┌─────────────────────────────────────────────────────────────────┐')
+    console.log('│ PERFORMANCE ANALYTICS STARTED                                  │')
     console.log(`│ Session ID: ${currentAnalyticsRef.current.sessionId.padEnd(45)}│`)
-    console.log(
-      '└─────────────────────────────────────────────────────────────────┘'
-    )
+    console.log('└─────────────────────────────────────────────────────────────────┘')
   }, [])
 
   // Finalize and report analytics
@@ -153,41 +128,33 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
       analytics.stages.totalEndToEnd = endTiming(analytics.stages.totalEndToEnd)
 
       // Log detailed analytics
-      console.log(
-        '┌─────────────────────────────────────────────────────────────────┐'
-      )
-      console.log('│ 📊 PERFORMANCE ANALYTICS COMPLETE                              │')
-      console.log(
-        '├─────────────────────────────────────────────────────────────────┤'
-      )
+      console.log('┌─────────────────────────────────────────────────────────────────┐')
+      console.log('│ PERFORMANCE ANALYTICS COMPLETE                                 │')
+      console.log('├─────────────────────────────────────────────────────────────────┤')
       console.log(`│ Session: ${analytics.sessionId.padEnd(49)}│`)
-      console.log(
-        '├─────────────────────────────────────────────────────────────────┤'
-      )
+      console.log('├─────────────────────────────────────────────────────────────────┤')
       console.log('│ TIMING BREAKDOWN:                                              │')
       console.log(
-        `│   🎤 Voice Recognition: ${String(
+        `│   Voice Recognition: ${String(
           analytics.stages.voiceRecognition.duration || 'N/A'
-        ).padEnd(37)}ms │`
+        ).padEnd(40)}ms │`
       )
       console.log(
-        `│   🤖 Claude Processing: ${String(
+        `│   Claude Processing: ${String(
           analytics.stages.claudeProcessing.duration || 'N/A'
-        ).padEnd(37)}ms │`
+        ).padEnd(40)}ms │`
       )
       console.log(
-        `│   🔊 TTS Generation:    ${String(
+        `│   TTS Generation:    ${String(
           analytics.stages.ttsGeneration.duration || 'N/A'
-        ).padEnd(37)}ms │`
+        ).padEnd(43)}ms │`
       )
       console.log(
-        `│   ⏱️  Total End-to-End: ${String(
+        `│   Total End-to-End: ${String(
           analytics.stages.totalEndToEnd.duration || 'N/A'
-        ).padEnd(37)}ms │`
+        ).padEnd(42)}ms │`
       )
-      console.log(
-        '├─────────────────────────────────────────────────────────────────┤'
-      )
+      console.log('├─────────────────────────────────────────────────────────────────┤')
       console.log('│ METADATA:                                                      │')
       console.log(
         `│   Transcript Length: ${String(analytics.metadata.transcriptLength).padEnd(41)} │`
@@ -208,9 +175,7 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
       console.log(
         `│   Had Error:         ${String(analytics.metadata.hadError).padEnd(41)} │`
       )
-      console.log(
-        '└─────────────────────────────────────────────────────────────────┘'
-      )
+      console.log('└─────────────────────────────────────────────────────────────────┘')
 
       // Call analytics callback if provided
       if (onAnalytics) {
@@ -231,7 +196,7 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
         ? {
             elevenLabsApiKey,
             preferCloudTTS,
-            elevenLabsModel: 'eleven_multilingual_v2' as const,
+            elevenLabsModel: 'eleven_turbo_v2_5' as const,  
           }
         : {
             preferCloudTTS: false,
@@ -240,7 +205,7 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
       const tts = initTTS(ttsConfig)
       ttsInitializedRef.current = true
 
-      console.log('[TTS] TTS initialized')
+      console.log('[TTS] TTS initialized with turbo model')
     }
   }, [elevenLabsApiKey, preferCloudTTS])
 
@@ -275,7 +240,7 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
         )
         currentAnalyticsRef.current.metadata.transcriptLength = spokenText.length
         console.log(
-          `[ANALYTICS] ✅ Voice Recognition: ${currentAnalyticsRef.current.stages.voiceRecognition.duration}ms`
+          `[ANALYTICS] Voice Recognition: ${currentAnalyticsRef.current.stages.voiceRecognition.duration}ms`
         )
       }
 
@@ -299,10 +264,26 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
           currentAnalyticsRef.current.stages.claudeProcessing = startTiming()
         }
 
+        // OPTIMIZATION: Call Claude with tool callback for immediate loading message
         const agentResult = await callClaudeAgent(newHistory, {
           systemPrompt,
           elderlyName: elderlyName,
           managerId: managerId,
+          model: claudeModel,  // Use configurable model
+          onToolStart: async (toolName, loadingMessage) => {
+            if (loadingMessage && !skipTTS) {
+              console.log(`[LOADING] Speaking: "${loadingMessage}"`)
+              try {
+                await speak(loadingMessage, {
+                  model: 'eleven_turbo_v2_5' as const,
+                  optimizeStreamingLatency: 4,  // Maximum speed
+                  voiceId,
+                })
+              } catch (error) {
+                console.error('[LOADING] Error speaking loading message:', error)
+              }
+            }
+          }
         })
 
         // End Claude processing timing
@@ -310,11 +291,10 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
           currentAnalyticsRef.current.stages.claudeProcessing = endTiming(
             currentAnalyticsRef.current.stages.claudeProcessing
           )
-          currentAnalyticsRef.current.metadata.responseLength =
-            agentResult.response.length
+          currentAnalyticsRef.current.metadata.responseLength = agentResult.response.length
           currentAnalyticsRef.current.metadata.toolsUsed = agentResult.toolsUsed
           console.log(
-            `[ANALYTICS] ✅ Claude Processing: ${currentAnalyticsRef.current.stages.claudeProcessing.duration}ms`
+            `[ANALYTICS] Claude Processing: ${currentAnalyticsRef.current.stages.claudeProcessing.duration}ms`
           )
         }
 
@@ -348,18 +328,13 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
               : 'native'
           }
 
-          const speakOptions = useConversationalAI
-            ? {
-                conversational: true,
-                voiceId,
-                optimizeStreamingLatency: 4,
-              }
-            : {
-                model: 'eleven_turbo_v2_5' as const,
-                voiceId,
-                optimizeStreamingLatency: 3,
-                language,
-              }
+          // OPTIMIZED: Always use turbo model with max latency optimization
+          const speakOptions = {
+            model: 'eleven_turbo_v2_5' as const,
+            voiceId,
+            optimizeStreamingLatency: 4,  // Maximum speed
+            language,
+          }
 
           await speak(agentResponse, speakOptions)
 
@@ -369,7 +344,7 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
               currentAnalyticsRef.current.stages.ttsGeneration
             )
             console.log(
-              `[ANALYTICS] ✅ TTS Generation: ${currentAnalyticsRef.current.stages.ttsGeneration.duration}ms`
+              `[ANALYTICS] TTS Generation: ${currentAnalyticsRef.current.stages.ttsGeneration.duration}ms`
             )
           }
 
@@ -441,6 +416,7 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
       onConversationEnd,
       preferCloudTTS,
       finalizeAnalytics,
+      claudeModel,
     ]
   )
 
@@ -676,7 +652,7 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
       if (state.isSpeaking) {
         console.log('[VOICE] Stopping TTS first...')
         await stop()
-        await new Promise(resolve => setTimeout(resolve, 100))
+        await new Promise(resolve => setTimeout(resolve, 50))  // Reduced from 100ms
       }
 
       isProcessingRef.current = false
@@ -766,4 +742,4 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
   }
 }
 
-export type { PerformanceAnalytics, TimingMetric }
+export type { PerformanceAnalytics }

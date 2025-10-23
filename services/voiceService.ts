@@ -133,7 +133,7 @@ const setupVoiceListeners = (): void => {
  */
 export const initializeVoice = async (): Promise<boolean> => {
   try {
-    console.log('[VOICE SERVICE] 🚀 Initializing Expo Speech Recognition...')
+    console.log('[VOICE SERVICE] Initializing Expo Speech Recognition...')
     console.log('[VOICE SERVICE] Platform:', Platform.OS)
 
     // Check if speech recognition is available
@@ -141,7 +141,7 @@ export const initializeVoice = async (): Promise<boolean> => {
     console.log('[VOICE SERVICE] Recognition available:', available)
 
     if (!available) {
-      console.error('[VOICE SERVICE] ❌ Speech recognition not available')
+      console.error('[VOICE SERVICE] Speech recognition not available')
       isVoiceInitialized = false
       return false
     }
@@ -151,7 +151,7 @@ export const initializeVoice = async (): Promise<boolean> => {
     console.log('[VOICE SERVICE] Permission status:', status, 'granted:', granted)
 
     if (!granted) {
-      console.error('[VOICE SERVICE] ❌ Permission denied')
+      console.error('[VOICE SERVICE] Permission denied')
       isVoiceInitialized = false
       return false
     }
@@ -163,7 +163,7 @@ export const initializeVoice = async (): Promise<boolean> => {
         console.log('[VOICE SERVICE] Available services:', services)
 
         if (services.length === 0) {
-          console.error('[VOICE SERVICE] ❌ No speech recognition services available')
+          console.error('[VOICE SERVICE] No speech recognition services available')
           isVoiceInitialized = false
           return false
         }
@@ -176,10 +176,10 @@ export const initializeVoice = async (): Promise<boolean> => {
     setupVoiceListeners()
 
     isVoiceInitialized = true
-    console.log('[VOICE SERVICE] ✅ Speech Recognition initialized successfully')
+    console.log('[VOICE SERVICE] Speech Recognition initialized successfully')
     return true
   } catch (error) {
-    console.error('[VOICE SERVICE] ❌ Failed to initialize:', error)
+    console.error('[VOICE SERVICE] Failed to initialize:', error)
     isVoiceInitialized = false
     return false
   }
@@ -238,7 +238,7 @@ export const startListening = async (lang?: string): Promise<void> => {
       }),
     })
 
-    console.log('[VOICE SERVICE] ✅ Recognition started')
+    console.log('[VOICE SERVICE] Recognition started')
   } catch (error) {
     console.error('[VOICE SERVICE ERROR] Error starting:', error)
     isListening = false

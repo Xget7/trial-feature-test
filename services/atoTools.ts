@@ -1,5 +1,5 @@
 import { atoApi } from '../lib/atoApi'
-import { t } from '../lib/i18n'
+import { t, i18n } from '../lib/i18n'
 
 export interface Tool {
   name: string
@@ -82,20 +82,26 @@ export interface ToolResult {
   data?: any
   error?: string
   shouldEndConversation?: boolean
+  loadingMessage?: string  // ✅ NEW: Message to speak while processing
 }
 
+// ✅ Get loading message for a tool based on current locale
+const getLoadingMessage = (toolName: string): string => {
+  const loadingKey = toolName.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase())
+  return t(`tools.loading.${loadingKey}`)
+}
 
 async function selectUserForManager(
   managerId: string,
   userName?: string
 ): Promise<{ userId: string; userInfo: any } | null> {
-  console.log(`[ATO TOOLS] 🔍 Selecting user for manager: ${managerId}, name: ${userName || 'not specified'}`)
+  console.log(`[ATO TOOLS] Selecting user for manager: ${managerId}, name: ${userName || 'not specified'}`)
 
   // Get all managed users with selection status
   const managedUsers = await atoApi.getManagedUsersWithSelection(managerId)
 
   if (managedUsers.length === 0) {
-    console.error('[ATO TOOLS] ❌ Manager has no managed users')
+    console.error('[ATO TOOLS] Manager has no managed users')
     return null
   }
 
@@ -122,19 +128,18 @@ async function selectUserForManager(
     })
 
     if (matchedUser) {
-      console.log(`[ATO TOOLS] ✅ Found matching user: ${matchedUser.name} ${matchedUser.surname}`)
+      console.log(`[ATO TOOLS] Found matching user: ${matchedUser.name} ${matchedUser.surname}`)
       return {
         userId: matchedUser.id,
         userInfo: matchedUser
       }
     }
-
   }
 
   const selectedUser = managedUsers.find(user => user.isSelected)
-  
+
   if (selectedUser) {
-    console.log(`[ATO TOOLS] ✅ Using selected user: ${selectedUser.name} ${selectedUser.surname}`)
+    console.log(`[ATO TOOLS] Using selected user: ${selectedUser.name} ${selectedUser.surname}`)
     return {
       userId: selectedUser.id,
       userInfo: selectedUser
@@ -156,7 +161,7 @@ export const executeAtoTool = async (
     managerId?: string
   }
 ): Promise<ToolResult> => {
-  console.log(`[ATO TOOLS] 🔧 Executing tool: ${toolName}`)
+  console.log(`[ATO TOOLS] Executing tool: ${toolName}`)
   console.log(`[ATO TOOLS] Input:`, toolInput)
   console.log(`[ATO TOOLS] Context:`, context)
 
@@ -192,14 +197,14 @@ export const executeAtoTool = async (
         )
 
       default:
-        console.error(`[ATO TOOLS] ❌ Unknown tool: ${toolName}`)
+        console.error(`[ATO TOOLS] Unknown tool: ${toolName}`)
         return {
           success: false,
           error: `Unknown tool: ${toolName}`,
         }
     }
   } catch (error) {
-    console.error(`[ATO TOOLS] ❌ Error executing ${toolName}:`, error)
+    console.error(`[ATO TOOLS] Error executing ${toolName}:`, error)
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
@@ -220,7 +225,7 @@ async function getCurrentTime(): Promise<ToolResult> {
     day: 'numeric',
   })
 
-  console.log(`[ATO TOOLS] ⏰ Current time: ${timeString} - ${dateString}`)
+  console.log(`[ATO TOOLS] Current time: ${timeString} - ${dateString}`)
 
   return {
     success: true,
@@ -233,7 +238,7 @@ async function getCurrentTime(): Promise<ToolResult> {
 }
 
 async function endConversation(farewellMessage: string): Promise<ToolResult> {
-  console.log(`[ATO TOOLS] 👋 Ending conversation: ${farewellMessage}`)
+  console.log(`[ATO TOOLS] Ending conversation: ${farewellMessage}`)
 
   return {
     success: true,
@@ -248,7 +253,7 @@ async function getUserReport(
   managerId: string,
   userName?: string
 ): Promise<ToolResult> {
-  console.log(`[ATO TOOLS] 📊 Getting report for manager: ${managerId}, user: ${userName || 'auto-select'}`)
+  console.log(`[ATO TOOLS] Getting report for manager: ${managerId}, user: ${userName || 'auto-select'}`)
 
   try {
     const userSelection = await selectUserForManager(managerId, userName)
@@ -262,10 +267,16 @@ async function getUserReport(
 
     const { userId, userInfo } = userSelection
 
+    // Return loading message immediately
+    const result: ToolResult = {
+      success: false,  // Temporary, will be updated
+      loadingMessage: getLoadingMessage('get_user_report'),
+    }
+
     // Get the report
     const report = await atoApi.getUserReport(userId)
 
-    console.log(`[ATO TOOLS] ✅ Report received for ${userInfo.name}:`, {
+    console.log(`[ATO TOOLS] Report received for ${userInfo.name}:`, {
       total_contacts: report.summary.total_contacts,
       total_reminders: report.summary.total_reminders,
       active_reminders: report.summary.active_reminders,
@@ -284,7 +295,7 @@ async function getUserReport(
       },
     }
   } catch (error) {
-    console.error(`[ATO TOOLS] ❌ Error getting report:`, error)
+    console.error(`[ATO TOOLS] Error getting report:`, error)
     return {
       success: false,
       error: 'Could not get user report',
@@ -298,7 +309,7 @@ async function createReminder(
   task: string,
   scheduledFor: string
 ): Promise<ToolResult> {
-  console.log(`[ATO TOOLS] 📝 Creating reminder for manager: ${managerId}, user: ${userName || 'auto-select'}`)
+  console.log(`[ATO TOOLS] Creating reminder for manager: ${managerId}, user: ${userName || 'auto-select'}`)
 
   try {
     const userSelection = await selectUserForManager(managerId, userName)
@@ -330,7 +341,7 @@ async function createReminder(
       }
     }
 
-    console.log(`[ATO TOOLS] ✅ Reminder created for ${userInfo.name}:`, reminder.id)
+    console.log(`[ATO TOOLS] Reminder created for ${userInfo.name}:`, reminder.id)
 
     return {
       success: true,
@@ -345,12 +356,18 @@ async function createReminder(
       },
     }
   } catch (error) {
-    console.error(`[ATO TOOLS] ❌ Error creating reminder:`, error)
+    console.error(`[ATO TOOLS] Error creating reminder:`, error)
     return {
       success: false,
       error: 'Could not create reminder',
     }
   }
+}
+
+// ✅ NEW: Get loading message for a tool
+export const getToolLoadingMessage = (toolName: string): string | undefined => {
+  const message = getLoadingMessage(toolName)
+  return message || undefined
 }
 
 export const formatToolResult = (toolName: string, result: ToolResult): string => {
@@ -370,34 +387,35 @@ export const formatToolResult = (toolName: string, result: ToolResult): string =
     case 'get_user_report':
       const report = result.data
       const userInfo = report.user_info
-      
+
       let reportStr = `${t('tools.getUserReport.title')} - ${userInfo.name} ${userInfo.surname}`
-      
+
       if (userInfo.relationship) {
         reportStr += ` (${userInfo.relationship})`
       }
-      
+
       reportStr += `:\n\n`
-      reportStr += `RESUMEN:\n`
-      reportStr += `- Total de contactos: ${report.summary.total_contacts}\n`
-      reportStr += `- Total de recordatorios: ${report.summary.total_reminders}\n`
-      reportStr += `- Recordatorios activos: ${report.summary.active_reminders}\n`
-      
+      reportStr += `${t('tools.getUserReport.summary')}:\n`
+      reportStr += `- ${t('tools.getUserReport.totalContacts')}: ${report.summary.total_contacts}\n`
+      reportStr += `- ${t('tools.getUserReport.totalReminders')}: ${report.summary.total_reminders}\n`
+      reportStr += `- ${t('tools.getUserReport.activeReminders')}: ${report.summary.active_reminders}\n`
+
       if (report.summary.pending_reminders !== undefined) {
-        reportStr += `- Recordatorios pendientes: ${report.summary.pending_reminders}\n`
+        reportStr += `- ${t('tools.getUserReport.pendingReminders')}: ${report.summary.pending_reminders}\n`
       }
-      
-      reportStr += `- Recordatorios completados: ${report.summary.completed_reminders}\n`
-      
+
+      reportStr += `- ${t('tools.getUserReport.completedReminders')}: ${report.summary.completed_reminders}\n`
+
       if (report.summary.failed_reminders && report.summary.failed_reminders > 0) {
-        reportStr += `- Recordatorios fallidos: ${report.summary.failed_reminders}\n`
+        reportStr += `- ${t('tools.getUserReport.failedReminders')}: ${report.summary.failed_reminders}\n`
       }
-      
+
       if (report.upcoming_reminders && report.upcoming_reminders.length > 0) {
-        reportStr += `\nPRÓXIMOS RECORDATORIOS (${report.upcoming_reminders.length}):\n`
+        reportStr += `\n${t('tools.getUserReport.upcomingRemindersCount')} (${report.upcoming_reminders.length}):\n`
         report.upcoming_reminders.slice(0, 5).forEach((reminder: any, index: number) => {
           const scheduledDate = new Date(reminder.scheduled_for)
-          const dateStr = scheduledDate.toLocaleDateString('es-AR', {
+          const locale = i18n.locale === 'es' ? 'es-AR' : 'en-US'
+          const dateStr = scheduledDate.toLocaleDateString(locale, {
             weekday: 'short',
             month: 'short',
             day: 'numeric',
@@ -407,13 +425,13 @@ export const formatToolResult = (toolName: string, result: ToolResult): string =
           reportStr += `  ${index + 1}. "${reminder.task}" - ${dateStr}\n`
         })
       }
-      
+
       if (report.recent_activity && report.recent_activity.length > 0) {
-        reportStr += `\nACTIVIDAD RECIENTE (${report.recent_activity.length} eventos)\n`
+        reportStr += `\n${t('tools.getUserReport.recentActivityCount')} (${report.recent_activity.length} ${t('tools.getUserReport.events')})\n`
       }
-      
+
       if (report.recent_reminders && report.recent_reminders.length > 0) {
-        reportStr += `\nÚLTIMOS RECORDATORIOS:\n`
+        reportStr += `\n${t('tools.getUserReport.lastReminders')}:\n`
         report.recent_reminders.slice(0, 3).forEach((reminder: any, index: number) => {
           reportStr += `  ${index + 1}. "${reminder.task}" (${reminder.status})\n`
         })

@@ -24,7 +24,7 @@ class HybridTTSService {
     preferCloudTTS?: boolean
     elevenLabsModel?: ElevenLabsModel
   }) {
-    console.log('[TTS INIT] 🚀 Initializing Hybrid TTS Service')
+    console.log('[TTS INIT] Initializing Hybrid TTS Service')
     console.log('[TTS INIT] Config:', {
       hasApiKey: !!config?.elevenLabsApiKey,
       apiKeyLength: config?.elevenLabsApiKey?.length || 0,
@@ -35,14 +35,14 @@ class HybridTTSService {
 
     if (config?.elevenLabsApiKey) {
       this.elevenLabsApiKey = config.elevenLabsApiKey
-      console.log('[TTS INIT] ✅ Creating ElevenLabs service instance')
+      console.log('[TTS INIT] Creating ElevenLabs service instance')
       this.elevenLabs = new ElevenLabsTTSService(
         config.elevenLabsApiKey,
         config.elevenLabsModel || 'eleven_multilingual_v2'
       )
-      console.log('[TTS INIT] ✅ ElevenLabs instance created')
+      console.log('[TTS INIT] ElevenLabs instance created')
     } else {
-      console.log('[TTS INIT] ⚠️ No API key provided - will use native TTS only')
+      console.log('[TTS INIT] No API key provided - will use native TTS only')
     }
 
     this.preferCloudTTS = config?.preferCloudTTS ?? true
@@ -53,10 +53,10 @@ class HybridTTSService {
    * Set ElevenLabs API key
    */
   setElevenLabsApiKey(apiKey: string): void {
-    console.log('[TTS] 🔑 Setting ElevenLabs API key:', apiKey.substring(0, 10) + '...')
+    console.log('[TTS] Setting ElevenLabs API key:', apiKey.substring(0, 10) + '...')
     this.elevenLabsApiKey = apiKey
     this.elevenLabs = new ElevenLabsTTSService(apiKey)
-    console.log('[TTS] ✅ ElevenLabs API key configured')
+    console.log('[TTS] ElevenLabs API key configured')
   }
 
   /**
@@ -64,7 +64,7 @@ class HybridTTSService {
    */
   private async isOnline(): Promise<boolean> {
     try {
-      console.log('[TTS NETWORK] 🌐 Checking network connection...')
+      console.log('[TTS NETWORK] Checking network connection...')
       const networkState = await Network.getNetworkStateAsync()
       console.log('[TTS NETWORK] Network state:', {
         isConnected: networkState.isConnected,
@@ -73,10 +73,10 @@ class HybridTTSService {
       })
 
       const online = networkState.isConnected === true && networkState.isInternetReachable === true
-      console.log('[TTS NETWORK]', online ? '✅ Device is ONLINE' : '❌ Device is OFFLINE')
+      console.log('[TTS NETWORK]', online ? 'Device is ONLINE' : 'Device is OFFLINE')
       return online
     } catch (error) {
-      console.error('[TTS NETWORK] ❌ Error checking network:', error)
+      console.error('[TTS NETWORK] Error checking network:', error)
       return false
     }
   }
@@ -85,30 +85,30 @@ class HybridTTSService {
    * Determine which TTS provider to use
    */
   private async selectProvider(): Promise<TTSProvider> {
-    console.log('[TTS SELECT] 🤔 Selecting TTS provider...')
+    console.log('[TTS SELECT] Selecting TTS provider...')
     console.log('[TTS SELECT] preferCloudTTS:', this.preferCloudTTS)
     console.log('[TTS SELECT] has elevenLabs instance:', !!this.elevenLabs)
     console.log('[TTS SELECT] has API key:', !!this.elevenLabsApiKey)
 
     if (!this.preferCloudTTS) {
-      console.log('[TTS SELECT] ➡️ User preference: NATIVE (preferCloudTTS is false)')
+      console.log('[TTS SELECT] User preference: NATIVE (preferCloudTTS is false)')
       return 'native'
     }
 
     if (!this.elevenLabs) {
-      console.log('[TTS SELECT] ➡️ No ElevenLabs instance: NATIVE')
+      console.log('[TTS SELECT] No ElevenLabs instance: NATIVE')
       return 'native'
     }
 
     if (!this.elevenLabsApiKey) {
-      console.log('[TTS SELECT] ➡️ No API key: NATIVE')
+      console.log('[TTS SELECT] No API key: NATIVE')
       return 'native'
     }
 
     const online = await this.isOnline()
     const provider = online ? 'elevenlabs' : 'native'
 
-    console.log('[TTS SELECT] ✅ Selected provider:', provider.toUpperCase())
+    console.log('[TTS SELECT] Selected provider:', provider.toUpperCase())
     return provider
   }
 
@@ -133,7 +133,7 @@ class HybridTTSService {
     } = {}
   ): Promise<void> {
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
-    console.log('[TTS SPEAK] 🎤 Starting speak request')
+    console.log('[TTS SPEAK] Starting speak request')
     console.log('[TTS SPEAK] Text:', text.substring(0, 100))
     console.log('[TTS SPEAK] Options:', {
       forceProvider: options.forceProvider,
@@ -148,7 +148,7 @@ class HybridTTSService {
         const provider = options.forceProvider || (await this.selectProvider())
         this.currentProvider = provider
 
-        console.log(`[TTS SPEAK] 🎯 FINAL PROVIDER: ${provider.toUpperCase()}`)
+        console.log(`[TTS SPEAK] FINAL PROVIDER: ${provider.toUpperCase()}`)
         console.log('[TTS SPEAK] preferCloudTTS:', this.preferCloudTTS)
         console.log('[TTS SPEAK] has elevenLabs:', !!this.elevenLabs)
         console.log('[TTS SPEAK] has API key:', !!this.elevenLabsApiKey)
@@ -156,11 +156,11 @@ class HybridTTSService {
         eventListeners.get('start')?.forEach(listener => listener())
 
         if (provider === 'elevenlabs' && this.elevenLabs) {
-          console.log('[TTS SPEAK] ☁️ Attempting ElevenLabs TTS...')
+          console.log('[TTS SPEAK] Attempting ElevenLabs TTS...')
 
           try {
             if (options.conversational) {
-              console.log('[TTS SPEAK] 💬 Using conversational mode')
+              console.log('[TTS SPEAK] Using conversational mode')
               await this.elevenLabs.speakConversational(text, {
                 voiceId: options.voiceId,
                 stability: options.stability,
@@ -169,7 +169,7 @@ class HybridTTSService {
                 optimizeStreamingLatency: options.optimizeStreamingLatency,
               })
             } else {
-              console.log('[TTS SPEAK] 🗣️ Using standard mode')
+              console.log('[TTS SPEAK] Using standard mode')
               await this.elevenLabs.speak(text, {
                 voiceId: options.voiceId,
                 model: options.model,
@@ -178,14 +178,14 @@ class HybridTTSService {
               })
             }
 
-            console.log('[TTS SPEAK] ✅ ElevenLabs TTS completed successfully!')
+            console.log('[TTS SPEAK] ElevenLabs TTS completed successfully!')
             eventListeners.get('done')?.forEach(listener => listener())
             console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
             resolve()
           } catch (error) {
-            console.error('[TTS SPEAK] ❌ ElevenLabs FAILED:', error)
+            console.error('[TTS SPEAK] ElevenLabs FAILED:', error)
             console.error('[TTS SPEAK] Error details:', JSON.stringify(error, null, 2))
-            console.warn('[TTS SPEAK] ⚠️ Falling back to native TTS...')
+            console.warn('[TTS SPEAK] Falling back to native TTS...')
 
             // Fallback to native
             await this.speakNative(text, options)
@@ -193,7 +193,7 @@ class HybridTTSService {
             resolve()
           }
         } else {
-          console.log('[TTS SPEAK] 📱 Using native TTS')
+          console.log('[TTS SPEAK] Using native TTS')
           console.log(
             '[TTS SPEAK] Reason:',
             !this.preferCloudTTS
@@ -210,7 +210,7 @@ class HybridTTSService {
           resolve()
         }
       } catch (error) {
-        console.error('[TTS SPEAK] ❌ Fatal error:', error)
+        console.error('[TTS SPEAK] Fatal error:', error)
         console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
         eventListeners.get('error')?.forEach(listener => listener())
         reject(error)
@@ -233,7 +233,7 @@ class HybridTTSService {
     return new Promise((resolve, reject) => {
       const { language = 'es-ES', pitch = 1.0, rate = 1.0, voice } = options
 
-      console.log('[TTS NATIVE] 📱 Starting native TTS')
+      console.log('[TTS NATIVE] Starting native TTS')
       console.log('[TTS NATIVE] Text:', text.substring(0, 50) + '...')
       console.log('[TTS NATIVE] Options:', { language, pitch, rate, voice })
 
@@ -243,20 +243,20 @@ class HybridTTSService {
         rate,
         voice,
         onStart: () => {
-          console.log('[TTS NATIVE] ✅ Started')
+          console.log('[TTS NATIVE] Started')
         },
         onDone: () => {
-          console.log('[TTS NATIVE] ✅ Finished')
+          console.log('[TTS NATIVE] Finished')
           eventListeners.get('done')?.forEach(listener => listener())
           resolve()
         },
         onStopped: () => {
-          console.log('[TTS NATIVE] 🛑 Stopped')
+          console.log('[TTS NATIVE] Stopped')
           eventListeners.get('stopped')?.forEach(listener => listener())
           resolve()
         },
         onError: error => {
-          console.error('[TTS NATIVE] ❌ Error:', error)
+          console.error('[TTS NATIVE] Error:', error)
           eventListeners.get('error')?.forEach(listener => listener())
           reject(error)
         },
@@ -269,15 +269,15 @@ class HybridTTSService {
    */
   async stop(): Promise<void> {
     try {
-      console.log('[TTS] 🛑 Stopping speech, provider:', this.currentProvider)
+      console.log('[TTS] Stopping speech, provider:', this.currentProvider)
       if (this.currentProvider === 'elevenlabs' && this.elevenLabs) {
         await this.elevenLabs.stop()
       } else {
         await Speech.stop()
       }
-      console.log('[TTS] ✅ Stopped')
+      console.log('[TTS] Stopped')
     } catch (error) {
-      console.error('[TTS] ❌ Error stopping:', error)
+      console.error('[TTS] Error stopping:', error)
       throw error
     }
   }
@@ -292,9 +292,9 @@ class HybridTTSService {
       } else {
         await Speech.pause()
       }
-      console.log('[TTS] ⏸️ Paused')
+      console.log('[TTS] Paused')
     } catch (error) {
-      console.error('[TTS] ❌ Error pausing:', error)
+      console.error('[TTS] Error pausing:', error)
       throw error
     }
   }
@@ -309,9 +309,9 @@ class HybridTTSService {
       } else {
         await Speech.resume()
       }
-      console.log('[TTS] ▶️ Resumed')
+      console.log('[TTS] Resumed')
     } catch (error) {
-      console.error('[TTS] ❌ Error resuming:', error)
+      console.error('[TTS] Error resuming:', error)
       throw error
     }
   }
@@ -327,7 +327,7 @@ class HybridTTSService {
         return await Speech.isSpeakingAsync()
       }
     } catch (error) {
-      console.error('[TTS] ❌ Error checking if speaking:', error)
+      console.error('[TTS] Error checking if speaking:', error)
       return false
     }
   }
@@ -346,7 +346,7 @@ class HybridTTSService {
         return await Speech.getAvailableVoicesAsync()
       }
     } catch (error) {
-      console.error('[TTS] ❌ Error getting voices:', error)
+      console.error('[TTS] Error getting voices:', error)
       return []
     }
   }
@@ -363,7 +363,7 @@ class HybridTTSService {
    */
   setPreferCloudTTS(prefer: boolean): void {
     this.preferCloudTTS = prefer
-    console.log(`[TTS] ⚙️ Cloud TTS preference set to: ${prefer}`)
+    console.log(`[TTS] Cloud TTS preference set to: ${prefer}`)
   }
 
   /**
@@ -371,11 +371,11 @@ class HybridTTSService {
    */
   addEventListener(event: EventType, listener: EventListener): () => void {
     eventListeners.get(event)?.add(listener)
-    console.log(`[TTS] 👂 Added ${event} listener`)
+    console.log(`[TTS] Added ${event} listener`)
 
     return () => {
       eventListeners.get(event)?.delete(listener)
-      console.log(`[TTS] 🔇 Removed ${event} listener`)
+      console.log(`[TTS] Removed ${event} listener`)
     }
   }
 
@@ -384,7 +384,7 @@ class HybridTTSService {
    */
   removeEventListener(event: EventType, listener: EventListener): void {
     eventListeners.get(event)?.delete(listener)
-    console.log(`[TTS] 🔇 Removed ${event} listener`)
+    console.log(`[TTS] Removed ${event} listener`)
   }
 
   /**
@@ -394,9 +394,9 @@ class HybridTTSService {
     try {
       await this.stop()
       eventListeners.forEach(listeners => listeners.clear())
-      console.log('[TTS] 🧹 Cleaned up')
+      console.log('[TTS] Cleaned up')
     } catch (error) {
-      console.error('[TTS] ❌ Error cleaning up:', error)
+      console.error('[TTS] Error cleaning up:', error)
     }
   }
 
@@ -425,15 +425,15 @@ export const initTTS = (config?: {
   preferCloudTTS?: boolean
   elevenLabsModel?: ElevenLabsModel
 }): HybridTTSService => {
-  console.log('[TTS] 🎬 initTTS called')
+  console.log('[TTS] initTTS called')
 
   if (!ttsInstance) {
-    console.log('[TTS] 🆕 Creating new TTS instance')
+    console.log('[TTS] Creating new TTS instance')
     ttsInstance = new HybridTTSService(config)
   } else {
-    console.log('[TTS] ♻️ Reusing existing TTS instance')
+    console.log('[TTS] Reusing existing TTS instance')
     if (config?.elevenLabsApiKey) {
-      console.log('[TTS] 🔑 Updating API key on existing instance')
+      console.log('[TTS] Updating API key on existing instance')
       ttsInstance.setElevenLabsApiKey(config.elevenLabsApiKey)
     }
   }
@@ -447,7 +447,7 @@ export const initTTS = (config?: {
  */
 export const getTTS = (): HybridTTSService => {
   if (!ttsInstance) {
-    console.log('[TTS] ⚠️ getTTS called but no instance exists, creating default')
+    console.log('[TTS] getTTS called but no instance exists, creating default')
     ttsInstance = new HybridTTSService()
   }
   return ttsInstance
