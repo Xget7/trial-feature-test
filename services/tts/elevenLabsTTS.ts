@@ -105,7 +105,7 @@ class ElevenLabsTTSService {
       voiceId = '21m00Tcm4TlvDq8ikWAM',
       model = this.defaultModel,
       similarityBoost = 0.8,
-      optimizeStreamingLatency = 0,
+      optimizeStreamingLatency = 1,
       outputFormat = 'mp3_44100_128',
     } = options
 
@@ -132,6 +132,7 @@ class ElevenLabsTTSService {
         voice_settings: {
           speed: 1.0,
           similarityBoost: similarityBoost,
+
         },
       }
 

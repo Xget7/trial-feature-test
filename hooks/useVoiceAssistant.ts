@@ -18,6 +18,7 @@ interface UseVoiceAssistantOptions {
   useConversationalAI?: boolean
   voiceId?: string
   onConversationEnd?: () => void
+  onAnalytics?: (analytics: PerformanceAnalytics) => void // New callback for analytics
 }
 
 interface VoiceAssistantState {
@@ -30,7 +31,49 @@ interface VoiceAssistantState {
   ttsProvider?: 'elevenlabs' | 'native'
 }
 
+// Analytics interfaces
+interface PerformanceAnalytics {
+  sessionId: string
+  timestamp: number
+  stages: {
+    voiceRecognition: TimingMetric
+    claudeProcessing: TimingMetric
+    ttsGeneration: TimingMetric
+    totalEndToEnd: TimingMetric
+  }
+  metadata: {
+    transcriptLength: number
+    responseLength: number
+    ttsProvider?: string
+    toolsUsed?: string[]
+    hadError: boolean
+  }
+}
+
+interface TimingMetric {
+  startTime: number
+  endTime?: number
+  duration?: number
+}
+
 const DEFAULT_SILENCE_TIMEOUT = 1500
+
+// Helper to create timing metric
+const startTiming = (): TimingMetric => ({
+  startTime: Date.now(),
+})
+
+const endTiming = (metric: TimingMetric): TimingMetric => {
+  const endTime = Date.now()
+  return {
+    ...metric,
+    endTime,
+    duration: endTime - metric.startTime,
+  }
+}
+
+// Generate unique session ID
+const generateSessionId = () => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 
 export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
   const {
@@ -44,6 +87,7 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
     managerId,
     voiceId = 'r3lotmx3BZETVvcKm6R6',
     onConversationEnd,
+    onAnalytics,
   } = options
 
   const [state, setState] = useState<VoiceAssistantState>({
@@ -66,6 +110,118 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
   const ttsInitializedRef = useRef(false)
   const isTextModeRef = useRef(false)
   const isStartingRef = useRef(false)
+
+  // Analytics refs
+  const currentAnalyticsRef = useRef<PerformanceAnalytics | null>(null)
+
+  // Initialize analytics for a new interaction
+  const initAnalytics = useCallback(() => {
+    currentAnalyticsRef.current = {
+      sessionId: generateSessionId(),
+      timestamp: Date.now(),
+      stages: {
+        voiceRecognition: startTiming(),
+        claudeProcessing: { startTime: 0 },
+        ttsGeneration: { startTime: 0 },
+        totalEndToEnd: startTiming(),
+      },
+      metadata: {
+        transcriptLength: 0,
+        responseLength: 0,
+        hadError: false,
+      },
+    }
+    console.log(
+      '┌─────────────────────────────────────────────────────────────────┐'
+    )
+    console.log('│ 📊 PERFORMANCE ANALYTICS STARTED                               │')
+    console.log(`│ Session ID: ${currentAnalyticsRef.current.sessionId.padEnd(45)}│`)
+    console.log(
+      '└─────────────────────────────────────────────────────────────────┘'
+    )
+  }, [])
+
+  // Finalize and report analytics
+  const finalizeAnalytics = useCallback(
+    (hadError: boolean = false) => {
+      if (!currentAnalyticsRef.current) return
+
+      const analytics = currentAnalyticsRef.current
+      analytics.metadata.hadError = hadError
+
+      // Calculate total end-to-end
+      analytics.stages.totalEndToEnd = endTiming(analytics.stages.totalEndToEnd)
+
+      // Log detailed analytics
+      console.log(
+        '┌─────────────────────────────────────────────────────────────────┐'
+      )
+      console.log('│ 📊 PERFORMANCE ANALYTICS COMPLETE                              │')
+      console.log(
+        '├─────────────────────────────────────────────────────────────────┤'
+      )
+      console.log(`│ Session: ${analytics.sessionId.padEnd(49)}│`)
+      console.log(
+        '├─────────────────────────────────────────────────────────────────┤'
+      )
+      console.log('│ TIMING BREAKDOWN:                                              │')
+      console.log(
+        `│   🎤 Voice Recognition: ${String(
+          analytics.stages.voiceRecognition.duration || 'N/A'
+        ).padEnd(37)}ms │`
+      )
+      console.log(
+        `│   🤖 Claude Processing: ${String(
+          analytics.stages.claudeProcessing.duration || 'N/A'
+        ).padEnd(37)}ms │`
+      )
+      console.log(
+        `│   🔊 TTS Generation:    ${String(
+          analytics.stages.ttsGeneration.duration || 'N/A'
+        ).padEnd(37)}ms │`
+      )
+      console.log(
+        `│   ⏱️  Total End-to-End: ${String(
+          analytics.stages.totalEndToEnd.duration || 'N/A'
+        ).padEnd(37)}ms │`
+      )
+      console.log(
+        '├─────────────────────────────────────────────────────────────────┤'
+      )
+      console.log('│ METADATA:                                                      │')
+      console.log(
+        `│   Transcript Length: ${String(analytics.metadata.transcriptLength).padEnd(41)} │`
+      )
+      console.log(
+        `│   Response Length:   ${String(analytics.metadata.responseLength).padEnd(41)} │`
+      )
+      console.log(
+        `│   TTS Provider:      ${String(
+          analytics.metadata.ttsProvider || 'N/A'
+        ).padEnd(41)} │`
+      )
+      console.log(
+        `│   Tools Used:        ${String(
+          analytics.metadata.toolsUsed?.join(', ') || 'None'
+        ).padEnd(41)} │`
+      )
+      console.log(
+        `│   Had Error:         ${String(analytics.metadata.hadError).padEnd(41)} │`
+      )
+      console.log(
+        '└─────────────────────────────────────────────────────────────────┘'
+      )
+
+      // Call analytics callback if provided
+      if (onAnalytics) {
+        onAnalytics(analytics)
+      }
+
+      // Reset for next interaction
+      currentAnalyticsRef.current = null
+    },
+    [onAnalytics]
+  )
 
   useEffect(() => {
     if (!ttsInitializedRef.current) {
@@ -112,6 +268,17 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
         silenceTimerRef.current = null
       }
 
+      // End voice recognition timing
+      if (currentAnalyticsRef.current) {
+        currentAnalyticsRef.current.stages.voiceRecognition = endTiming(
+          currentAnalyticsRef.current.stages.voiceRecognition
+        )
+        currentAnalyticsRef.current.metadata.transcriptLength = spokenText.length
+        console.log(
+          `[ANALYTICS] ✅ Voice Recognition: ${currentAnalyticsRef.current.stages.voiceRecognition.duration}ms`
+        )
+      }
+
       setState(prev => ({
         ...prev,
         transcript: spokenText,
@@ -126,13 +293,31 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
         ]
 
         console.log('[AI] Calling Claude...')
-        
+
+        // Start Claude processing timing
+        if (currentAnalyticsRef.current) {
+          currentAnalyticsRef.current.stages.claudeProcessing = startTiming()
+        }
+
         const agentResult = await callClaudeAgent(newHistory, {
           systemPrompt,
           elderlyName: elderlyName,
           managerId: managerId,
         })
-        
+
+        // End Claude processing timing
+        if (currentAnalyticsRef.current) {
+          currentAnalyticsRef.current.stages.claudeProcessing = endTiming(
+            currentAnalyticsRef.current.stages.claudeProcessing
+          )
+          currentAnalyticsRef.current.metadata.responseLength =
+            agentResult.response.length
+          currentAnalyticsRef.current.metadata.toolsUsed = agentResult.toolsUsed
+          console.log(
+            `[ANALYTICS] ✅ Claude Processing: ${currentAnalyticsRef.current.stages.claudeProcessing.duration}ms`
+          )
+        }
+
         const agentResponse = agentResult.response
         console.log('[AI] Response:', agentResponse.substring(0, 50) + '...')
 
@@ -154,6 +339,15 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
 
         if (!skipTTS) {
           console.log('[TTS] Playing audio response')
+
+          // Start TTS timing
+          if (currentAnalyticsRef.current) {
+            currentAnalyticsRef.current.stages.ttsGeneration = startTiming()
+            currentAnalyticsRef.current.metadata.ttsProvider = preferCloudTTS
+              ? 'elevenlabs'
+              : 'native'
+          }
+
           const speakOptions = useConversationalAI
             ? {
                 conversational: true,
@@ -168,7 +362,21 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
               }
 
           await speak(agentResponse, speakOptions)
+
+          // End TTS timing
+          if (currentAnalyticsRef.current) {
+            currentAnalyticsRef.current.stages.ttsGeneration = endTiming(
+              currentAnalyticsRef.current.stages.ttsGeneration
+            )
+            console.log(
+              `[ANALYTICS] ✅ TTS Generation: ${currentAnalyticsRef.current.stages.ttsGeneration.duration}ms`
+            )
+          }
+
           console.log('[TTS] Finished speaking')
+
+          // Finalize analytics
+          finalizeAnalytics(false)
 
           if (agentResult.shouldEndConversation) {
             console.log('[AI] Conversation should end')
@@ -181,6 +389,9 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
         } else {
           console.log('[TTS] Skipping audio (text mode)')
 
+          // Finalize analytics even without TTS
+          finalizeAnalytics(false)
+
           if (agentResult.shouldEndConversation && onConversationEnd) {
             console.log('[AI] Conversation should end (text mode)')
             setTimeout(() => {
@@ -190,6 +401,10 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
         }
       } catch (error) {
         console.error('=== ERROR ===', error)
+
+        // Finalize analytics with error flag
+        finalizeAnalytics(true)
+
         setState(prev => ({ ...prev, isProcessing: false }))
 
         const errorMessage = language.startsWith('es')
@@ -224,6 +439,8 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
       elderlyName,
       managerId,
       onConversationEnd,
+      preferCloudTTS,
+      finalizeAnalytics,
     ]
   )
 
@@ -265,6 +482,12 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
       onStart: () => {
         console.log('[VOICE] Started listening')
         isStartingRef.current = false
+
+        // Initialize analytics when voice starts
+        if (!isTextModeRef.current) {
+          initAnalytics()
+        }
+
         if (isMounted.current && !isTextModeRef.current) {
           setState(prev => ({ ...prev, isListening: true, transcript: '' }))
           lastTranscriptRef.current = ''
@@ -353,6 +576,12 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
       onError: error => {
         console.error('[VOICE] Error:', error)
         isStartingRef.current = false
+
+        // Finalize analytics on error
+        if (currentAnalyticsRef.current) {
+          finalizeAnalytics(true)
+        }
+
         if (isMounted.current) {
           setState(prev => ({ ...prev, isListening: false }))
           if (silenceTimerRef.current) {
@@ -383,7 +612,7 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
 
     handlersSetupRef.current = true
     console.log('[VOICE] Handlers configured')
-  }, [])
+  }, [initAnalytics, finalizeAnalytics])
 
   useEffect(() => {
     const removeStart = addEventListener('start', () => {
@@ -513,6 +742,9 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
       if (text.trim()) {
         isTextModeRef.current = true
 
+        // Initialize analytics for text mode
+        initAnalytics()
+
         if (state.isListening) {
           console.log('[VOICE] Stopping listening for text mode')
           await stopListening()
@@ -521,7 +753,7 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
         await handleSpeechResult(text.trim(), options?.skipTTS ?? false)
       }
     },
-    [handleSpeechResult, state.isListening, stopListening]
+    [handleSpeechResult, state.isListening, stopListening, initAnalytics]
   )
 
   return {
@@ -533,3 +765,5 @@ export const useVoiceAssistant = (options: UseVoiceAssistantOptions = {}) => {
     sendTextMessage,
   }
 }
+
+export type { PerformanceAnalytics, TimingMetric }

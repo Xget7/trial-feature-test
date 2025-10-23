@@ -206,7 +206,7 @@ export const startListening = async (lang?: string): Promise<void> => {
         throw new Error('Voice module could not be initialized')
       }
 
-      await new Promise(resolve => setTimeout(resolve, 300))
+      await new Promise(resolve => setTimeout(resolve, 200))
     }
 
     if (isListening) {
@@ -219,9 +219,9 @@ export const startListening = async (lang?: string): Promise<void> => {
     console.log('[VOICE SERVICE] Starting recognition with language:', selectedLang)
 
     const androidOptions = {
-        EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS: 6000,
-        EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS: 3000,            
-        EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS: 3000,
+        EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS: 4000,
+        EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS: 2000,            
+        EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS: 2000,
         EXTRA_PREFER_OFFLINE: false,
     }
 
@@ -261,7 +261,7 @@ export const stopListening = async (): Promise<void> => {
 
     // iOS may need a small delay
     if (Platform.OS === 'ios') {
-      await new Promise(resolve => setTimeout(resolve, 300))
+      await new Promise(resolve => setTimeout(resolve, 200))
     }
   } catch (error) {
     console.error('[VOICE SERVICE ERROR] Error stopping:', error)
