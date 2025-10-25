@@ -104,6 +104,7 @@ class ElevenLabsTTSService {
     const {
       voiceId = '21m00Tcm4TlvDq8ikWAM',
       model = this.defaultModel,
+      stability = 0.5,
       similarityBoost = 0.8,
       optimizeStreamingLatency = 1,
       outputFormat = 'mp3_44100_128',
@@ -130,9 +131,8 @@ class ElevenLabsTTSService {
         text,
         model_id: model,
         voice_settings: {
-          speed: 1.0,
-          similarityBoost: similarityBoost,
-
+          stability: stability,
+          similarity_boost: similarityBoost,
         },
       }
 
@@ -176,8 +176,8 @@ class ElevenLabsTTSService {
       })
 
       const { sound } = await Audio.Sound.createAsync(
-        { uri: fileUri }, 
-        { shouldPlay: true }
+        { uri: fileUri },
+        { shouldPlay: true, volume: 1.0 }
       )
 
       this.sound = sound

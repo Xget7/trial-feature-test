@@ -81,23 +81,19 @@ export const ATO_SYSTEM_PROMPT = generateAtoSystemPrompt()
 const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages'
 
 export type ClaudeModel = 
-  // ✅ ALIASES (Recomendado para desarrollo - siempre apunta a la última versión)
   | 'claude-sonnet-4-5'              // Latest Sonnet 4.5
   | 'claude-haiku-4-5'               // Latest Haiku 4.5  
   | 'claude-opus-4-1'                // Latest Opus 4.1
   | 'claude-sonnet-3-7'              // Latest Sonnet 3.7
   
-  // ✅ Claude 3.5 (Stable)
   | 'claude-3-5-sonnet-20241022'     
   | 'claude-3-5-haiku-20241022'
   | 'claude-3-5-sonnet-20240620'
   
-  // ✅ Claude 3 (Legacy)
   | 'claude-3-opus-20240229'
   | 'claude-3-sonnet-20240229'
   | 'claude-3-haiku-20240307'
 
-// ✅ USA EL ALIAS para desarrollo
 const DEFAULT_MODEL: ClaudeModel = 'claude-haiku-4-5'
 /**
  * Calls Claude AI API with tool-calling capabilities for the Ato Assistant.
@@ -251,6 +247,12 @@ export const callClaudeAgent = async (
 
           if (result.shouldEndConversation) {
             shouldEndConversation = true
+
+            if (toolUse.name === 'end_conversation' && toolUse.input.farewell_message) {
+              finalResponse = toolUse.input.farewell_message
+              continueLoop = false
+              break
+            }
           }
 
           const formattedResult = formatToolResult(toolUse.name, result)
@@ -262,12 +264,14 @@ export const callClaudeAgent = async (
           })
         }
 
-        currentMessages.push({
-          role: 'user',
-          content: toolResults,
-        })
-
-        continueLoop = true
+        // Only continue the loop if we haven't set a final response
+        if (!finalResponse) {
+          currentMessages.push({
+            role: 'user',
+            content: toolResults,
+          })
+          continueLoop = true
+        }
       } else {
         const textContent = data.content.find((block: any) => block.type === 'text')
         if (textContent) {

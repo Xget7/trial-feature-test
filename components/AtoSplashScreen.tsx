@@ -10,7 +10,7 @@ interface SplashScreenProps {
 }
 
 export const SplashScreen: React.FC<SplashScreenProps> = ({ message }) => {
-  const fadeAnim = useRef(new Animated.Value(0.3)).current
+  const fadeAnim = useRef(new Animated.Value(0.8)).current
   const scaleAnim = useRef(new Animated.Value(0.8)).current
   const pulseAnim = useRef(new Animated.Value(1)).current
 
