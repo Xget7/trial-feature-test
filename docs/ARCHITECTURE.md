@@ -194,14 +194,12 @@ Created `lib/atoApi.ts` as an abstraction layer:
 
 ### 3.4 AI Integration: Direct Claude API vs OpenAI SDK
 
-**Decision:** Use direct Anthropic Claude API calls instead of OpenAI or Vercel AI SDK.
+**Decision:** Use direct Anthropic Claude API calls instead of OpenAI or Vercel AI SDK (mostly because I had credits to use with claude)
 
-**Rationale:**
-- **Tool Calling**: Claude's tool-calling capabilities are superior for structured outputs
-- **Agentic Loop**: Need custom agent loop for multi-turn tool execution
-- **Rioplatense Spanish**: Claude performs better with Argentine Spanish dialect
-- **Context Window**: Claude Sonnet 4.5 has excellent context handling
-- **Streaming**: Direct API gives full control over streaming responses
+  **Rationale:**
+  - **Custom Agentic Loop**: Need direct control over multi-turn tool execution flow
+  - **Tool Calling**: Claude structured tool calling works well for our use case
+  - **Rioplatense Spanish**: Better support for Argentine Spanish dialect (personal opinion)
 
 **Implementation:**
 
@@ -1110,6 +1108,13 @@ import { Platform } from 'react-native'
 const bottomNavHeight = Platform.OS === 'ios' ? 100 : 90
 ```
 
+**Important:** All platform-specific code is handled via:
+- Expo modules and their configuration plugins
+- React Native's Platform API for conditional logic
+- Platform-specific file extensions (`.ios.tsx`, `.android.tsx`)
+
+**No native code** (Swift, Kotlin, Objective-C, Java) was written. All native functionality comes from Expo's pre-built modules.
+
 ---
 
 ## 13. Development Workflow
@@ -1319,6 +1324,12 @@ packages/
 - **OTA Updates**: Critical for quick bug fixes without app store review
 - **Simplicity**: No need to manage native code (Xcode/Android Studio)
 - **Developer Experience**: Excellent tooling and documentation
+
+**Important Note:**
+- **No Native Code Touched**: This is a 100% Expo managed workflow - zero native iOS or Android code was written or modified
+- **No `ios/` or `android/` directories**: These are not checked into the repository
+- **All native features** via Expo modules (expo-speech-recognition, expo-av, expo-notifications, etc.)
+- **Future native work**: If native modules are needed in the future, would require ejecting to bare workflow or using custom development builds
 
 **Trade-offs Accepted:**
 - Limited native module flexibility

@@ -192,7 +192,8 @@ EXPO_PUBLIC_OPENAI_API_KEY=your_openai_key
 ## Do Not Touch
 
 - **Never** modify `expo-env.d.ts` manually
-- **Never** add custom native code (stay in managed workflow)
+- **Never** add custom native code - this is a **100% Expo managed workflow**
+- **Never** create or modify `ios/` or `android/` directories (they don't exist in this project)
 - **Never** directly modify `.expo/` directory contents
 - **Never** commit `.env` files with secrets
 - **Never** use deprecated React Navigation patterns
@@ -200,7 +201,11 @@ EXPO_PUBLIC_OPENAI_API_KEY=your_openai_key
 - **Avoid** platform-specific code unless absolutely necessary
 - **Don't** use React class components
 - **Don't** bypass Expo's secure storage for sensitive data
-- **Don't** modify native directories (`ios/`, `android/`) if using managed workflow
+
+**Critical:** This project uses **Expo's managed workflow exclusively**. Zero native Swift, Kotlin, Objective-C, or Java code exists. If you need native functionality:
+1. First check if an Expo module exists (`npx expo install expo-*`)
+2. If not, check for a community config plugin
+3. As a last resort, evaluate if ejecting is justified (requires team discussion)
 
 ## AI Integration Notes
 

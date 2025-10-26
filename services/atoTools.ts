@@ -13,7 +13,7 @@ export interface Tool {
 
 export const ATO_TOOLS: Tool[] = [
   {
-    name: 'get_current_time',
+    name: 'get_current_time', 
     description:
       'Gets the current time and date from the device. Use this when the manager asks what time it is or what day is today.',
     input_schema: {
